@@ -1,0 +1,29 @@
+{
+  "name": "classic-bags-official",
+  "private": true,
+  "version": "2.0.0",
+  "type": "module",
+  "scripts": {
+    "dev:store": "vite --config vite.store.config.js",
+    "dev:admin": "vite --config vite.admin.config.js",
+    "dev": "concurrently \"npm run dev:store\" \"npm run dev:admin\"",
+    "build:store": "vite build --config vite.store.config.js",
+    "build:admin": "vite build --config vite.admin.config.js"
+  },
+  "dependencies": {
+    "crypto-js": "^4.2.0",
+    "lucide-react": "^1.16.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.3",
+    "autoprefixer": "^10.4.20",
+    "concurrently": "^9.1.2",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.15",
+    "vite": "^5.4.11"
+  }
+}

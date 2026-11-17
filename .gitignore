@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Production build artifacts
+dist/
+
+# Android build intermediaries
+android-service/apk-build/bin/
+android-service/apk-build/gen/
+android-service/apk-build/obj/
+android-service/apk-build/compiled_res.zip
+android-service/apk-build/app-base.apk
+android-service/apk-build/app-aligned.apk
+android-service/apk-build/debug.keystore
+
+# Logs & temp files
+*.log
+.DS_Store
+Thumbs.db

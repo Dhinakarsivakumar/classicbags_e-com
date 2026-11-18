@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="app_name">Classic Bags Listener</string>
-    <string name="title">Classic Bags Payment Listener</string>
-    <string name="desc">Background service to capture Google Pay for Business notifications and trigger auto-order approvals.</string>
-    <string name="btn_permission">Enable Notification Access</string>
-</resources>

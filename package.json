@@ -4,11 +4,9 @@
   "version": "2.0.0",
   "type": "module",
   "scripts": {
-    "dev:store": "vite --config vite.store.config.js",
-    "dev:admin": "vite --config vite.admin.config.js",
-    "dev": "concurrently \"npm run dev:store\" \"npm run dev:admin\"",
-    "build:store": "vite build --config vite.store.config.js",
-    "build:admin": "vite build --config vite.admin.config.js"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
     "crypto-js": "^4.2.0",

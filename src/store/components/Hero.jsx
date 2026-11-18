@@ -33,9 +33,9 @@ export default function Hero({ products, onCustomizeClick }) {
               & Custom Packaging
             </h1>
 
-            {/* Tamil text */}
+            {/* Subheading */}
             <p className="text-lg sm:text-xl text-[#7e5222]/80 font-medium mb-4">
-              கிளாசிக் பேப்பர் பேக்ஸ் - தஞ்சாவூர்
+              Premium Kraft Packaging • Thanjavur
             </p>
 
             {/* Description */}
@@ -65,7 +65,7 @@ export default function Hero({ products, onCustomizeClick }) {
                 className="inline-flex items-center gap-2 px-6 py-3 bg-white hover:bg-stone-50 text-[#7e5222] border border-[#7e5222]/30 rounded-full font-semibold transition-all duration-200 shadow-sm active:scale-95"
               >
                 <SlidersHorizontal className="w-4 h-4" />
-                🎨 Custom Logo Printing (வடிவமைக்க)
+                🎨 Custom Logo Printing
               </button>
               <a
                 href={`https://wa.me/${STORE_SETTINGS.whatsapp}?text=Hi%20Classic%20Bags!%20I'd%20like%20to%20place%20a%20wholesale%20order.`}

@@ -63,7 +63,7 @@ export default function ProductCard({
               ? 'bg-white text-rose-500'
               : 'bg-white/80 hover:bg-white text-stone-600 hover:text-rose-500'
           }`}
-          title={isWishlisted ? 'விருப்பப்பட்டியலில் இருந்து நீக்கு' : 'விருப்பப்பட்டியலில் சேர்'}
+          title={isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
         >
           <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-rose-500 text-rose-500' : ''}`} />
         </button>
@@ -86,7 +86,7 @@ export default function ProductCard({
       <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between">
         <div>
           <div className="flex items-center justify-between text-xs text-stone-500 mb-1">
-            <span className="font-tamil text-stone-600 font-medium">{tamilName}</span>
+            <span className="text-stone-500 font-semibold uppercase tracking-wider text-[10px]">{categoryLabels[category] || category}</span>
             <div className="flex items-center gap-1 text-amber-600 font-semibold">
               <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
               <span>{rating}</span>
@@ -125,7 +125,7 @@ export default function ProductCard({
             className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 bg-amber-50 hover:bg-amber-100 text-[#7e5222] text-xs font-bold rounded-xl transition-colors border border-amber-200/60"
           >
             <SlidersHorizontal size={13} />
-            <span>Customize (வடிவமை)</span>
+            <span>Customize</span>
           </button>
           <button
             onClick={() => onQuickAdd(product)}

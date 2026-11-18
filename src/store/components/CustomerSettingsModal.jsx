@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   X, Package, MapPin, User, CheckCircle2, Clock, Truck, 
-  ChevronRight, Plus, Trash2, Edit2, ShieldCheck, Printer, 
-  ExternalLink, Phone, Building2, Save
+  Plus, Trash2, Phone, Building2, Save
 } from 'lucide-react';
 import { Storage } from '../../shared/services/storage';
 
@@ -44,7 +43,7 @@ export default function CustomerSettingsModal({ isOpen, onClose, activeTab: init
   const handleSaveProfile = (e) => {
     e.preventDefault();
     Storage.saveUserProfile(profile);
-    setSaveSuccess('Profile saved successfully! விவரங்கள் சேமிக்கப்பட்டன.');
+    setSaveSuccess('Profile updated successfully!');
     setTimeout(() => setSaveSuccess(''), 3000);
   };
 
@@ -105,8 +104,8 @@ export default function CustomerSettingsModal({ isOpen, onClose, activeTab: init
               <User className="w-5 h-5 text-amber-200" />
             </div>
             <div>
-              <h2 className="text-xl font-bold tracking-tight">கணக்கு & அமைப்புகள் (Settings)</h2>
-              <p className="text-xs text-amber-100/90">ஆர்டர்கள், முகவரிகள் & வாடிக்கையாளர் விவரங்கள்</p>
+              <h2 className="text-xl font-bold tracking-tight">Account & Settings</h2>
+              <p className="text-xs text-amber-100/90">Orders, delivery addresses & business details</p>
             </div>
           </div>
           <button
@@ -128,7 +127,7 @@ export default function CustomerSettingsModal({ isOpen, onClose, activeTab: init
             }`}
           >
             <Package className="w-4 h-4" />
-            <span>எனது ஆர்டர்கள் (Orders)</span>
+            <span>My Orders</span>
             <span className="ml-1 text-xs px-2 py-0.5 rounded-full bg-amber-100 text-[#7e5222] font-bold">
               {orders.length}
             </span>
@@ -143,7 +142,7 @@ export default function CustomerSettingsModal({ isOpen, onClose, activeTab: init
             }`}
           >
             <MapPin className="w-4 h-4" />
-            <span>முகவரிகள் (Addresses)</span>
+            <span>Saved Addresses</span>
             <span className="ml-1 text-xs px-2 py-0.5 rounded-full bg-amber-100 text-[#7e5222] font-bold">
               {addresses.length}
             </span>
@@ -158,7 +157,7 @@ export default function CustomerSettingsModal({ isOpen, onClose, activeTab: init
             }`}
           >
             <User className="w-4 h-4" />
-            <span>சுயவிவரம் (Profile)</span>
+            <span>Profile</span>
           </button>
         </div>
 
@@ -179,42 +178,42 @@ export default function CustomerSettingsModal({ isOpen, onClose, activeTab: init
                   <div className="w-16 h-16 rounded-2xl bg-amber-50 text-[#7e5222] mx-auto flex items-center justify-center mb-3">
                     <Package className="w-8 h-8 opacity-60" />
                   </div>
-                  <h3 className="text-lg font-bold text-stone-800">இன்னும் ஆர்டர்கள் எதுவும் இல்லை</h3>
+                  <h3 className="text-lg font-bold text-stone-800">No Orders Placed Yet</h3>
                   <p className="text-stone-500 text-sm mt-1 max-w-sm mx-auto">
-                    நீங்கள் செய்யும் ஆர்டர்கள் தானாகவே இங்கே கண்காணிக்கப்படும்.
+                    Your wholesale orders and real-time tracking status will appear here.
                   </p>
                   <button
                     onClick={onClose}
                     className="mt-5 px-6 py-2.5 bg-[#7e5222] hover:bg-[#674221] text-white rounded-full font-medium text-sm transition-all"
                   >
-                    பைகளைத் தேர்ந்தெடுக்கவும் (Browse Catalog)
+                    Browse Product Catalog
                   </button>
                 </div>
               ) : (
                 orders.map((order, idx) => (
                   <div 
-                    key={order.orderId || idx}
+                    key={order.orderId || order.id || idx}
                     className="border border-stone-200 rounded-2xl p-4 sm:p-5 hover:border-amber-300 transition-all bg-stone-50/50"
                   >
                     {/* Order Top Bar */}
                     <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-stone-200">
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-stone-900 text-base">{order.orderId}</span>
+                        <span className="font-bold text-stone-900 text-base">{order.orderId || order.id}</span>
                         <span className="text-xs text-stone-500">
-                          {new Date(order.timestamp).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                          {new Date(order.timestamp || order.createdAt || Date.now()).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold ${
-                          order.status === 'PAID'
+                          order.status === 'PAID' || order.status === 'PAID_APPROVED'
                             ? 'bg-green-100 text-green-800'
                             : 'bg-amber-100 text-amber-800'
                         }`}>
-                          {order.status === 'PAID' ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
-                          {order.status === 'PAID' ? 'PAID (செலுத்தப்பட்டது)' : 'PENDING'}
+                          {order.status === 'PAID' || order.status === 'PAID_APPROVED' ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
+                          {order.status === 'PAID' || order.status === 'PAID_APPROVED' ? 'PAID & CONFIRMED' : 'PENDING'}
                         </span>
                         <span className="text-base font-extrabold text-[#7e5222]">
-                          ₹{(order.amount).toFixed(2)}
+                          ₹{(order.totalAmount || order.total || order.amount || 0).toFixed(2)}
                         </span>
                       </div>
                     </div>
@@ -225,9 +224,9 @@ export default function CustomerSettingsModal({ isOpen, onClose, activeTab: init
                         <div key={itemIdx} className="flex items-center justify-between text-sm">
                           <div className="flex items-center gap-2">
                             <span className="font-medium text-stone-800">{item.name}</span>
-                            <span className="text-xs text-stone-500">({item.size} • {item.quantity} pcs)</span>
+                            <span className="text-xs text-stone-500">({item.size} • {item.qty || item.quantity} pcs)</span>
                           </div>
-                          <span className="text-stone-700 font-semibold">₹{item.totalPrice?.toFixed(2)}</span>
+                          <span className="text-stone-700 font-semibold">₹{(item.totalPrice || item.lineTotal || (item.price * item.qty) || 0).toFixed(2)}</span>
                         </div>
                       ))}
                     </div>
@@ -236,17 +235,17 @@ export default function CustomerSettingsModal({ isOpen, onClose, activeTab: init
                     <div className="pt-3 border-t border-stone-200/80">
                       <div className="flex items-center justify-between text-xs text-stone-500 mb-2">
                         <span className="flex items-center gap-1 text-green-700 font-medium">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> ஆர்டர் பெறப்பட்டது
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Order Received
                         </span>
                         <span className="flex items-center gap-1 text-amber-700 font-medium">
-                          <Truck className="w-3.5 h-3.5" /> பேக்கிங் & டெலிவரி
+                          <Truck className="w-3.5 h-3.5" /> Printing & Packing
                         </span>
-                        <span className="text-stone-400">டெலிவரி (தஞ்சாவூர்)</span>
+                        <span className="text-stone-400">Delivered</span>
                       </div>
                       <div className="w-full bg-stone-200 rounded-full h-1.5 overflow-hidden">
                         <div 
                           className="bg-[#7e5222] h-full rounded-full transition-all duration-500"
-                          style={{ width: order.status === 'PAID' ? '70%' : '30%' }}
+                          style={{ width: (order.status === 'PAID' || order.status === 'PAID_APPROVED') ? '70%' : '30%' }}
                         />
                       </div>
 
@@ -267,14 +266,14 @@ export default function CustomerSettingsModal({ isOpen, onClose, activeTab: init
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <p className="text-sm text-stone-600">
-                  ஆர்டர்கள் விரைவாக சென்றடைய உங்கள் டெலிவரி முகவரிகளை நிர்வகிக்கவும்.
+                  Manage your delivery locations for fast 1-click checkout.
                 </p>
                 {!isAddingAddress && (
                   <button
                     onClick={() => setIsAddingAddress(true)}
                     className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#7e5222] hover:bg-[#674221] text-white rounded-xl text-xs font-bold transition-all shadow-sm"
                   >
-                    <Plus className="w-4 h-4" /> புதிய முகவரி (Add Address)
+                    <Plus className="w-4 h-4" /> Add Address
                   </button>
                 )}
               </div>
@@ -283,7 +282,7 @@ export default function CustomerSettingsModal({ isOpen, onClose, activeTab: init
               {isAddingAddress && (
                 <form onSubmit={handleAddAddress} className="p-4 bg-amber-50/50 border border-amber-200 rounded-2xl space-y-3 animate-fadeIn">
                   <div className="flex items-center justify-between">
-                    <h4 className="font-bold text-stone-800 text-sm">புதிய முகவரி சேர்க்க (New Address)</h4>
+                    <h4 className="font-bold text-stone-800 text-sm">Add New Delivery Address</h4>
                     <button 
                       type="button" 
                       onClick={() => setIsAddingAddress(false)}
@@ -295,23 +294,23 @@ export default function CustomerSettingsModal({ isOpen, onClose, activeTab: init
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-semibold text-stone-700 mb-1">முகவரி வகை (Title)</label>
+                      <label className="block text-xs font-semibold text-stone-700 mb-1">Address Label (Title)</label>
                       <input
                         type="text"
                         value={newAddress.title}
                         onChange={e => setNewAddress({ ...newAddress, title: e.target.value })}
-                        placeholder="எ.கா: கடை / ஆலை / வீடு"
+                        placeholder="e.g. Shop, Warehouse, Factory, Home"
                         className="w-full text-xs px-3 py-2 rounded-lg border border-stone-300 focus:outline-none focus:ring-2 focus:ring-[#7e5222]"
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-stone-700 mb-1">பெயர் (Full Name)</label>
+                      <label className="block text-xs font-semibold text-stone-700 mb-1">Contact Person (Full Name)</label>
                       <input
                         type="text"
                         value={newAddress.fullName}
                         onChange={e => setNewAddress({ ...newAddress, fullName: e.target.value })}
-                        placeholder="உங்கள் பெயர்"
+                        placeholder="Full Name"
                         className="w-full text-xs px-3 py-2 rounded-lg border border-stone-300 focus:outline-none focus:ring-2 focus:ring-[#7e5222]"
                         required
                       />
@@ -320,7 +319,7 @@ export default function CustomerSettingsModal({ isOpen, onClose, activeTab: init
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-semibold text-stone-700 mb-1">வாட்ஸ்அப் எண் (Phone)</label>
+                      <label className="block text-xs font-semibold text-stone-700 mb-1">Phone Number</label>
                       <input
                         type="tel"
                         value={newAddress.phone}
@@ -331,7 +330,7 @@ export default function CustomerSettingsModal({ isOpen, onClose, activeTab: init
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-stone-700 mb-1">பின்கோடு (Pincode)</label>
+                      <label className="block text-xs font-semibold text-stone-700 mb-1">Postal Pincode</label>
                       <input
                         type="text"
                         value={newAddress.pincode}
@@ -344,12 +343,12 @@ export default function CustomerSettingsModal({ isOpen, onClose, activeTab: init
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-stone-700 mb-1">தெரு & கதவு எண் (Street Address)</label>
+                    <label className="block text-xs font-semibold text-stone-700 mb-1">Street Address & Door No.</label>
                     <input
                       type="text"
                       value={newAddress.street}
                       onChange={e => setNewAddress({ ...newAddress, street: e.target.value })}
-                      placeholder="எ.கா: Plot No. 38, 6th Street, Medical College Road"
+                      placeholder="e.g. Plot No. 38, 6th Street, Medical College Road"
                       className="w-full text-xs px-3 py-2 rounded-lg border border-stone-300 focus:outline-none focus:ring-2 focus:ring-[#7e5222]"
                       required
                     />
@@ -357,7 +356,7 @@ export default function CustomerSettingsModal({ isOpen, onClose, activeTab: init
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-semibold text-stone-700 mb-1">பகுதி / லேண்ட்மார்க் (Area / Landmark)</label>
+                      <label className="block text-xs font-semibold text-stone-700 mb-1">Area / Landmark</label>
                       <input
                         type="text"
                         value={newAddress.area}
@@ -367,7 +366,7 @@ export default function CustomerSettingsModal({ isOpen, onClose, activeTab: init
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-stone-700 mb-1">மாவட்டம் / நகரம் (City)</label>
+                      <label className="block text-xs font-semibold text-stone-700 mb-1">City / District</label>
                       <input
                         type="text"
                         value={newAddress.city}
@@ -388,7 +387,7 @@ export default function CustomerSettingsModal({ isOpen, onClose, activeTab: init
                       className="rounded border-stone-300 text-[#7e5222] focus:ring-[#7e5222]"
                     />
                     <label htmlFor="isDefault" className="text-xs text-stone-700 font-medium">
-                      இதை முதன்மை முகவரியாக வைக்கவும் (Set as default)
+                      Set as primary default address
                     </label>
                   </div>
 
@@ -398,13 +397,13 @@ export default function CustomerSettingsModal({ isOpen, onClose, activeTab: init
                       onClick={() => setIsAddingAddress(false)}
                       className="px-4 py-2 border border-stone-300 text-stone-700 rounded-lg text-xs font-medium hover:bg-stone-100"
                     >
-                      ரத்துசெய் (Cancel)
+                      Cancel
                     </button>
                     <button
                       type="submit"
                       className="px-4 py-2 bg-[#7e5222] text-white rounded-lg text-xs font-bold hover:bg-[#674221]"
                     >
-                      சேமிக்கவும் (Save Address)
+                      Save Address
                     </button>
                   </div>
                 </form>
@@ -454,7 +453,7 @@ export default function CustomerSettingsModal({ isOpen, onClose, activeTab: init
                         onClick={() => handleSetDefaultAddress(addr.id)}
                         className="mt-3 text-xs text-[#7e5222] hover:underline font-semibold"
                       >
-                        முதன்மை முகவரியாக மாற்று ➔
+                        Set as Default Address ➔
                       </button>
                     )}
                   </div>
@@ -468,7 +467,7 @@ export default function CustomerSettingsModal({ isOpen, onClose, activeTab: init
             <form onSubmit={handleSaveProfile} className="space-y-4 max-w-lg">
               <div>
                 <label className="block text-xs font-bold text-stone-700 mb-1">
-                  வாடிக்கையாளர் / கடை பெயர் (Customer / Business Name)
+                  Business / Retail Store Name
                 </label>
                 <div className="relative">
                   <Building2 className="w-4 h-4 text-stone-400 absolute left-3 top-3" />
@@ -476,7 +475,7 @@ export default function CustomerSettingsModal({ isOpen, onClose, activeTab: init
                     type="text"
                     value={profile.businessName || ''}
                     onChange={e => setProfile({ ...profile, businessName: e.target.value })}
-                    placeholder="எ.கா: தஞ்சாவூர் சில்க்ஸ் / Classic Customer"
+                    placeholder="e.g. Classic Wholesale Client"
                     className="w-full text-xs pl-9 pr-3 py-2.5 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-[#7e5222]"
                   />
                 </div>
@@ -484,7 +483,7 @@ export default function CustomerSettingsModal({ isOpen, onClose, activeTab: init
 
               <div>
                 <label className="block text-xs font-bold text-stone-700 mb-1">
-                  தொடர்பு நபர் பெயர் (Contact Person)
+                  Contact Person Name
                 </label>
                 <div className="relative">
                   <User className="w-4 h-4 text-stone-400 absolute left-3 top-3" />
@@ -500,7 +499,7 @@ export default function CustomerSettingsModal({ isOpen, onClose, activeTab: init
 
               <div>
                 <label className="block text-xs font-bold text-stone-700 mb-1">
-                  வாட்ஸ்அப் எண் (WhatsApp Order Phone)
+                  WhatsApp Contact Phone
                 </label>
                 <div className="relative">
                   <Phone className="w-4 h-4 text-stone-400 absolute left-3 top-3" />
@@ -513,19 +512,19 @@ export default function CustomerSettingsModal({ isOpen, onClose, activeTab: init
                   />
                 </div>
                 <p className="text-[11px] text-stone-500 mt-1">
-                  இந்த எண்ணிற்கு உடனடி ஆர்டர் மற்றும் பேமெண்ட் உறுதிப்படுத்தல் அனுப்பப்படும்.
+                  Instant order and zero-touch Google Pay payment confirmations are sent to this number.
                 </p>
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-stone-700 mb-1">
-                  மின்னஞ்சல் (Email - Optional)
+                  Email Address (Optional)
                 </label>
                 <input
                   type="email"
                   value={profile.email || ''}
                   onChange={e => setProfile({ ...profile, email: e.target.value })}
-                  placeholder="contact@example.com"
+                  placeholder="contact@classicbags.com"
                   className="w-full text-xs px-3 py-2.5 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-[#7e5222]"
                 />
               </div>
@@ -535,7 +534,7 @@ export default function CustomerSettingsModal({ isOpen, onClose, activeTab: init
                   type="submit"
                   className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#7e5222] hover:bg-[#674221] text-white rounded-xl text-xs font-bold transition-all shadow-md active:scale-95"
                 >
-                  <Save className="w-4 h-4" /> அமைப்புகளைச் சேமிக்கவும் (Save Profile)
+                  <Save className="w-4 h-4" /> Save Profile Details
                 </button>
               </div>
             </form>

@@ -61,14 +61,14 @@ export default function Navbar({
                 href="#catalog"
                 className="hidden lg:block text-sm font-medium text-stone-600 hover:text-[#7e5222] px-3 py-1.5 rounded-lg transition-colors"
               >
-                தயாரிப்புகள் (Products)
+                Products
               </a>
 
               {/* Wishlist Button */}
               <button
                 onClick={onWishlistOpen}
                 className="relative p-2.5 text-stone-700 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-all duration-200"
-                title="விருப்பப்பட்டியல் (Wishlist)"
+                title="Wishlist"
               >
                 <Heart className={`w-5 h-5 ${wishlistCount > 0 ? 'fill-rose-500 text-rose-500' : ''}`} />
                 {wishlistCount > 0 && (
@@ -82,7 +82,7 @@ export default function Navbar({
               <button
                 onClick={onSettingsOpen}
                 className="relative flex items-center gap-1.5 px-3 py-2 text-stone-700 hover:text-[#7e5222] hover:bg-amber-100/60 rounded-full transition-all duration-200 border border-stone-200/80"
-                title="அமைப்புகள் & ஆர்டர்கள் (Settings & Orders)"
+                title="Settings & Orders"
               >
                 <Settings className="w-4 h-4 text-[#7e5222]" />
                 <span className="text-xs font-bold hidden sm:inline">Settings</span>
@@ -97,7 +97,7 @@ export default function Navbar({
                 className="relative flex items-center gap-2 px-4 py-2 bg-[#7e5222] hover:bg-[#674221] text-white rounded-full transition-all duration-200 shadow-md hover:shadow-lg active:scale-95 ml-1"
               >
                 <ShoppingBag className="w-4 h-4" />
-                <span className="text-xs font-bold hidden sm:inline">கூடை (Cart)</span>
+                <span className="text-xs font-bold hidden sm:inline">Cart</span>
                 {cartItemCount > 0 && (
                   <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-sm animate-fadeIn">
                     {cartItemCount > 9999 ? '9k+' : cartItemCount.toLocaleString('en-IN')}

@@ -119,10 +119,10 @@ export default function App() {
       let updated;
       if (exists) {
         updated = prev.filter(item => item.id !== product.id);
-        showToast(`விருப்பப்பட்டியலில் இருந்து நீக்கப்பட்டது.`);
+        showToast('Removed from Wishlist');
       } else {
         updated = [...prev, product];
-        showToast(`❤️ விருப்பப்பட்டியலில் சேர்க்கப்பட்டது (Wishlist Added)!`);
+        showToast('❤️ Added to Wishlist!');
       }
       Storage.saveWishlist(updated);
       return updated;
@@ -148,7 +148,7 @@ export default function App() {
   const handleClearWishlist = useCallback(() => {
     setWishlist([]);
     Storage.saveWishlist([]);
-    showToast('விருப்பப்பட்டியல் காலியாக்கப்பட்டது.');
+    showToast('Wishlist cleared');
   }, []);
 
   // Update cart qty
@@ -276,10 +276,10 @@ export default function App() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-[#3d2510] tracking-tight">
-              பேப்பர் பேக் வகைகள் (Wholesale Catalog)
+              Wholesale Paper Bag Catalog
             </h2>
             <p className="text-xs sm:text-sm text-stone-500 mt-1">
-              உயர்தர பேப்பர் பேக்குகள் • குறைந்தபட்ச ஆர்டர் முதல் மொத்த விற்பனை வரை
+              Biodegradable kraft paper bags • Factory-direct wholesale pricing
             </p>
           </div>
 
@@ -292,7 +292,7 @@ export default function App() {
                 type="text"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Search bags / பைகள் தேட..."
+                placeholder="Search bags by size, gsm, type..."
                 className="w-full text-xs pl-9 pr-3 py-2.5 rounded-full border border-stone-200 bg-white focus:outline-none focus:ring-2 focus:ring-[#7e5222] shadow-sm"
               />
               {searchQuery && (
@@ -312,10 +312,10 @@ export default function App() {
                 onChange={e => setSortBy(e.target.value)}
                 className="text-xs py-2.5 pl-3 pr-7 rounded-full border border-stone-200 bg-white text-stone-700 font-medium focus:outline-none focus:ring-2 focus:ring-[#7e5222] shadow-sm appearance-none cursor-pointer"
               >
-                <option value="featured">Featured (பிரபலமானவை)</option>
-                <option value="price-low">விலை: குறைவு முதல் அதிகம்</option>
-                <option value="price-high">விலை: அதிகம் முதல் குறைவு</option>
-                <option value="rating">சிறந்த ரேட்டிங் (Top Rated)</option>
+                <option value="featured">Featured Bags</option>
+                <option value="price-low">Price: Low to High</option>
+                <option value="price-high">Price: High to Low</option>
+                <option value="rating">Top Rated</option>
               </select>
               <ArrowUpDown className="w-3.5 h-3.5 text-stone-400 absolute right-2.5 top-3 pointer-events-none" />
             </div>
@@ -371,13 +371,13 @@ export default function App() {
         </div>
         {filteredProducts.length === 0 && (
           <div className="text-center py-20 bg-white rounded-3xl border border-stone-200 p-8">
-            <p className="text-base font-bold text-stone-700">பொருட்கள் எதுவும் கிடைக்கவில்லை</p>
-            <p className="text-xs text-stone-500 mt-1">வேறு வார்த்தைகளில் தேடவும் அல்லது வடிகட்டியை மாற்றவும்.</p>
+            <p className="text-base font-bold text-stone-700">No Products Found</p>
+            <p className="text-xs text-stone-500 mt-1">Try searching with different keywords or reset your filters.</p>
             <button
               onClick={() => { setSelectedCategory('all'); setSearchQuery(''); }}
               className="mt-4 px-5 py-2 bg-[#7e5222] text-white text-xs font-bold rounded-full hover:bg-[#674221]"
             >
-              அனைத்தையும் காட்டு (Reset Filters)
+              Reset Filters
             </button>
           </div>
         )}
@@ -387,7 +387,7 @@ export default function App() {
       <section className="bg-gradient-to-r from-[#674221] via-[#7e5222] to-[#674221] py-16 px-4">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3">
-            🎨 Need Custom Logo Printing? (லோகோ அச்சிட வேண்டுமா?)
+            🎨 Need Custom Logo Printing?
           </h2>
           <p className="text-amber-100 mb-8 max-w-2xl mx-auto text-xs sm:text-sm">
             We offer multi-color screen printing and hot-foil stamping on all bag types.
@@ -410,7 +410,7 @@ export default function App() {
               onClick={handleOpenCustomLogo}
               className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-white/10 hover:bg-white/20 text-white border border-white/30 rounded-full font-semibold transition-all"
             >
-              Upload Logo & Preview Now (லோகோ பதிவேற்றம்)
+              Upload Logo & Preview Mockup
             </button>
           </div>
         </div>

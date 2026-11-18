@@ -22,8 +22,8 @@ export default function WishlistDrawer({
                 <Heart className="w-5 h-5 fill-rose-500" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-stone-900">விருப்பப்பட்டியல் (Wishlist)</h2>
-                <p className="text-xs text-stone-500">{wishlistItems.length} தயாரிப்புகள் சேமிக்கப்பட்டுள்ளன</p>
+                <h2 className="text-lg font-bold text-stone-900">Wishlist</h2>
+                <p className="text-xs text-stone-500">{wishlistItems.length} saved items</p>
               </div>
             </div>
             <button
@@ -41,15 +41,15 @@ export default function WishlistDrawer({
                 <div className="w-16 h-16 rounded-full bg-rose-50 text-rose-300 mx-auto flex items-center justify-center mb-4">
                   <Heart className="w-8 h-8" />
                 </div>
-                <h3 className="text-base font-bold text-stone-800">விருப்பப்பட்டியல் காலியாக உள்ளது</h3>
+                <h3 className="text-base font-bold text-stone-800">Your Wishlist is Empty</h3>
                 <p className="text-xs text-stone-500 mt-1 max-w-xs mx-auto">
-                  உங்களுக்கு பிடித்த பைகளில் உள்ள ❤️ ஐகானை க்ளிக் செய்து இங்கே சேமிக்கலாம்.
+                  Click the ❤️ icon on any bag in the catalog to save it here for fast ordering.
                 </p>
                 <button
                   onClick={onClose}
                   className="mt-6 px-6 py-2.5 bg-[#7e5222] hover:bg-[#674221] text-white rounded-full text-xs font-bold transition-all shadow-md"
                 >
-                  பைகளைத் தேர்ந்தெடுக்கவும் (Explore Bags)
+                  Explore Bags
                 </button>
               </div>
             ) : (
@@ -80,9 +80,9 @@ export default function WishlistDrawer({
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
-                      <p className="text-[11px] text-[#7e5222] font-medium">{item.tamilName}</p>
+                      <p className="text-[11px] text-[#7e5222] font-medium capitalize">{item.category} Bag</p>
                       <p className="text-[10px] text-stone-500 mt-0.5">
-                        {item.gsm} GSM • குறைந்தபட்சம்: {item.minOrderQty} pcs
+                        {item.gsm} GSM • Min Order: {item.minOrderQty} pcs
                       </p>
                     </div>
 
@@ -96,7 +96,7 @@ export default function WishlistDrawer({
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#7e5222] hover:bg-[#674221] text-white rounded-lg text-xs font-bold transition-all shadow-sm active:scale-95"
                       >
                         <ShoppingBag className="w-3 h-3" />
-                        <span>கூடையில் சேர் (Cart)</span>
+                        <span>Move to Cart</span>
                       </button>
                     </div>
                   </div>
@@ -109,14 +109,14 @@ export default function WishlistDrawer({
           {wishlistItems.length > 0 && (
             <div className="p-6 bg-[#fbf7ee] border-t border-stone-200 space-y-3">
               <div className="flex items-center justify-between text-xs text-stone-600">
-                <span>மொத்த தயாரிப்புகள்:</span>
-                <span className="font-bold text-stone-900">{wishlistItems.length} பொருட்கள்</span>
+                <span>Total Items:</span>
+                <span className="font-bold text-stone-900">{wishlistItems.length} items</span>
               </div>
               <button
                 onClick={onClearWishlist}
                 className="w-full py-2.5 text-center text-xs text-stone-500 hover:text-red-600 font-medium transition-colors"
               >
-                விருப்பப்பட்டியலை காலியாக்கு (Clear Wishlist)
+                Clear Wishlist
               </button>
             </div>
           )}

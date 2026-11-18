@@ -212,7 +212,7 @@ export default function CheckoutModal({ isOpen = true, onClose, cartItems = [], 
             {savedAddresses.length > 0 && (
               <div>
                 <label className="block text-xs font-bold text-stone-700 mb-1">
-                  Saved Delivery Address (சேமிக்கப்பட்ட முகவரி)
+                  Saved Delivery Address
                 </label>
                 <div className="flex gap-2 overflow-x-auto pb-1">
                   {savedAddresses.map(addr => (

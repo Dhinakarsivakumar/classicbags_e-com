@@ -159,7 +159,7 @@ export default function CheckoutModal({ isOpen = true, onClose, cartItems = [], 
                 <input
                   type="tel"
                   required
-                  placeholder="98432XXXXX"
+                  placeholder="89406XXXXX"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   className="w-full px-3.5 py-2.5 text-sm border border-stone-300 rounded-xl focus:ring-2 focus:ring-amber-600 focus:outline-none"

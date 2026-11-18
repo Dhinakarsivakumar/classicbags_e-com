@@ -2,12 +2,12 @@ export const STORE_SETTINGS = {
   storeName: 'Classic Bags',
   tagline: 'Eco-Friendly Paper Bag Manufacturer, Thanjavur',
   location: 'Plot No. 38, 6th Street, Medical College Road, LIC Colony, Thanjavur – 613007',
-  phone: '+91 98432 75685',
-  whatsapp: '919843275685',
+  phone: '+91 89406 79198',
+  whatsapp: '918940679198',
   upiId: 'classicbags.thanjavur@okaxis',
   merchantName: 'CLASSIC BAGS THANJAVUR',
   webhookEndpoint: 'https://api.classicbags.thanjavur/webhook/gpay',
-  webhookSecret: 'sec_cb_9843275685_live_hash',
+  webhookSecret: 'sec_cb_8940679198_live_hash',
   adminPin: '1234',
 };
 

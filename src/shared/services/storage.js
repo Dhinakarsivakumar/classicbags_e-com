@@ -30,6 +30,7 @@ export const Storage = {
   saveOrders: (orders) => {
     localStorage.setItem(KEYS.ORDERS, JSON.stringify(orders));
     window.dispatchEvent(new Event('storage'));
+    window.dispatchEvent(new CustomEvent('cb_store_updated', { detail: { key: KEYS.ORDERS, value: orders } }));
   },
 
   // --- Webhook Logs ---
@@ -39,6 +40,8 @@ export const Storage = {
   },
   saveWebhookLogs: (logs) => {
     localStorage.setItem(KEYS.WEBHOOK_LOGS, JSON.stringify(logs));
+    window.dispatchEvent(new Event('storage'));
+    window.dispatchEvent(new CustomEvent('cb_store_updated', { detail: { key: KEYS.WEBHOOK_LOGS, value: logs } }));
   },
 
   // --- Settings ---
@@ -103,14 +106,23 @@ export const Storage = {
     window.dispatchEvent(new Event('storage'));
   },
 
-  // Listen for cross-tab data changes (admin updates stock → store sees it)
+  // Listen for cross-tab and same-tab data changes
   onStorageChange: (callback) => {
     const handler = (e) => {
       if (e.key && Object.values(KEYS).includes(e.key)) {
         callback(e.key, e.newValue ? JSON.parse(e.newValue) : null);
       }
     };
+    const customHandler = (e) => {
+      if (e.detail && e.detail.key) {
+        callback(e.detail.key, e.detail.value);
+      }
+    };
     window.addEventListener('storage', handler);
-    return () => window.removeEventListener('storage', handler);
+    window.addEventListener('cb_store_updated', customHandler);
+    return () => {
+      window.removeEventListener('storage', handler);
+      window.removeEventListener('cb_store_updated', customHandler);
+    };
   }
 };

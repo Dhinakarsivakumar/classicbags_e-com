@@ -1,21 +1,30 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { X, Smartphone, QrCode, Copy, CheckCircle2, Loader2, ArrowRight, ShieldCheck, Zap, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { 
+  X, Smartphone, QrCode, Copy, CheckCircle2, ArrowRight, 
+  ShieldCheck, Banknote, Building2, CreditCard, Check
+} from 'lucide-react';
 import { STORE_SETTINGS } from '../../shared/data/initialData';
 import { Storage } from '../../shared/services/storage';
-import { WebhookEngine } from '../../shared/services/webhookEngine';
 
-export default function CheckoutModal({ isOpen = true, onClose, cartItems = [], onOrderCompleted, onOrderSuccess }) {
+export default function CheckoutModal({ 
+  isOpen = true, 
+  onClose, 
+  cartItems = [], 
+  onOrderCompleted, 
+  onOrderSuccess 
+}) {
   const [customerName, setCustomerName] = useState('');
   const [phone, setPhone] = useState('8940679198');
   const [city, setCity] = useState('Thanjavur');
   const [address, setAddress] = useState('');
   const [savedAddresses, setSavedAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('upi'); // 'upi' | 'cod' | 'bank'
   const [step, setStep] = useState('details'); // 'details' | 'payment' | 'success'
   const [createdOrder, setCreatedOrder] = useState(null);
   const [copied, setCopied] = useState(false);
   const [utrInput, setUtrInput] = useState('');
-  const [isVerifying, setIsVerifying] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const profile = Storage.getUserProfile();
@@ -47,53 +56,41 @@ export default function CheckoutModal({ isOpen = true, onClose, cartItems = [], 
     }
   };
 
-  const handleFinishSuccess = (order) => {
-    if (onOrderCompleted) onOrderCompleted(order);
-    if (onOrderSuccess) onOrderSuccess(order);
-  };
-
   if (!isOpen) return null;
 
   // Base total
   const baseSubtotal = cartItems.reduce((acc, item) => acc + (item.unitPrice * item.qty), 0);
-
-  // Dynamic Unique Paise generation (e.g. 0.12 - 0.99 for 1:1 matching)
-  const uniquePaise = useMemo(() => {
-    return Math.floor(Math.random() * 88 + 11) / 100;
-  }, [isOpen]);
-
-  const exactPayableAmount = (baseSubtotal + uniquePaise).toFixed(2);
-  const orderId = useMemo(() => {
-    return 'CB-' + Math.floor(1000 + Math.random() * 9000);
-  }, [isOpen]);
+  const orderAmount = baseSubtotal.toFixed(2);
+  const orderId = `CB-${Math.floor(1000 + Math.random() * 9000)}`;
 
   // Deep Link for Google Pay UPI Intent
-  const upiIntentUrl = `upi://pay?pa=${STORE_SETTINGS.upiId}&pn=${encodeURIComponent(STORE_SETTINGS.merchantName)}&am=${exactPayableAmount}&cu=INR&tn=${orderId}`;
+  const upiIntentUrl = `upi://pay?pa=${STORE_SETTINGS.upiId}&pn=${encodeURIComponent(STORE_SETTINGS.merchantName)}&am=${orderAmount}&cu=INR&tn=${orderId}`;
 
-  // QR Code URL
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(upiIntentUrl)}`;
-
-  // Watch for order approval from storage (e.g. when Admin or Webhook updates it)
-  useEffect(() => {
-    if (!createdOrder) return;
-    const interval = setInterval(() => {
-      const orders = Storage.getOrders() || [];
-      const current = orders.find(o => o.id === createdOrder.id);
-      if (current && current.status === 'PAID_APPROVED') {
-        setCreatedOrder(current);
-        setStep('success');
-        handleFinishSuccess(current);
-      }
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [createdOrder, onOrderCompleted]);
-
+  // Proceed from Details to Payment
   const handleProceedToPayment = (e) => {
     e.preventDefault();
     if (!customerName || !phone) return;
 
+    if (paymentMethod === 'cod') {
+      // Direct Cash on Delivery confirmation
+      finishOrder({
+        method: 'Cash on Delivery (COD)',
+        status: 'CONFIRMED_COD',
+        utr: 'COD-ORDER'
+      });
+      return;
+    }
+
+    setStep('payment');
+  };
+
+  // Complete Order
+  const finishOrder = ({ method, status, utr }) => {
+    setIsSubmitting(true);
+
     const order = {
       id: orderId,
+      orderId: orderId,
       customerName,
       phone,
       city,
@@ -104,19 +101,27 @@ export default function CheckoutModal({ isOpen = true, onClose, cartItems = [], 
         size: item.size,
         gsm: item.gsm,
         handle: item.handle,
-        price: item.unitPrice
+        unitPrice: item.unitPrice,
+        price: item.unitPrice,
+        totalPrice: item.unitPrice * item.qty
       })),
-      totalAmount: parseFloat(exactPayableAmount),
-      status: 'PENDING_PAYMENT',
-      paymentMethod: 'Google Pay for Business',
+      totalAmount: parseFloat(orderAmount),
+      amount: parseFloat(orderAmount),
+      status: status || 'PAID',
+      paymentMethod: method || 'Google Pay / UPI',
       timestamp: new Date().toISOString(),
-      exactAmountWithPaise: parseFloat(exactPayableAmount)
+      createdAt: new Date().toISOString(),
+      utr: utr || ('UPI' + Math.floor(1000000000 + Math.random() * 9000000000))
     };
 
     const existingOrders = Storage.getOrders() || [];
     Storage.saveOrders([order, ...existingOrders]);
     setCreatedOrder(order);
-    setStep('payment');
+    setStep('success');
+    setIsSubmitting(false);
+
+    if (onOrderCompleted) onOrderCompleted(order);
+    if (onOrderSuccess) onOrderSuccess(order);
   };
 
   const copyUpiId = () => {
@@ -125,76 +130,61 @@ export default function CheckoutModal({ isOpen = true, onClose, cartItems = [], 
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Instant Trigger via Webhook Engine
-  const triggerAutoApproval = (customUtr) => {
-    setIsVerifying(true);
-    const finalUtr = customUtr || ('4321' + Math.floor(10000000 + Math.random() * 90000000));
-
-    setTimeout(() => {
-      const result = WebhookEngine.processIncomingPayment({
-        amount: parseFloat(exactPayableAmount),
-        utr: finalUtr,
-        sender: customerName || 'Google Pay Customer',
-        orderId: orderId,
-        rawNotification: `Received ₹${exactPayableAmount} from ${customerName || 'Customer'} (Ref: ${finalUtr})`
-      });
-
-      if (result.matched) {
-        setCreatedOrder(result.matchedOrder);
-        setStep('success');
-        handleFinishSuccess(result.matchedOrder);
-      }
-      setIsVerifying(false);
-    }, 600);
-  };
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-stone-900/75 backdrop-blur-sm overflow-y-auto">
-      <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-stone-200 overflow-hidden my-4">
-        
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-stone-900/80 backdrop-blur-md overflow-y-auto animate-fadeIn">
+      <div 
+        className="bg-white rounded-3xl shadow-2xl border border-stone-200 max-w-lg w-full overflow-hidden transition-all my-8"
+        onClick={e => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-stone-200 flex items-center justify-between bg-stone-50">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-            <h2 className="text-base sm:text-lg font-black text-stone-900">
-              {step === 'details' && 'Wholesale Delivery Details'}
-              {step === 'payment' && 'Google Pay for Business Checkout'}
-              {step === 'success' && 'Order Approved & Confirmed!'}
-            </h2>
+        <div className="bg-gradient-to-r from-[#674221] to-[#7e5222] text-white px-6 py-4 flex justify-between items-center">
+          <div>
+            <h3 className="font-bold text-base sm:text-lg">
+              {step === 'details' && 'Wholesale Order Checkout'}
+              {step === 'payment' && 'Complete Payment'}
+              {step === 'success' && 'Order Confirmed!'}
+            </h3>
+            <p className="text-xs text-amber-100/90">
+              {step === 'details' && 'Verify delivery location and choose payment mode'}
+              {step === 'payment' && `Pay to ${STORE_SETTINGS.merchantName} via Google Pay`}
+              {step === 'success' && 'Your order is recorded and in production queue'}
+            </p>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-200 transition-colors"
+            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
           >
-            <X size={18} />
+            <X size={16} />
           </button>
         </div>
 
-        {/* STEP 1: Details */}
+        {/* STEP 1: Details & Payment Mode Selection */}
         {step === 'details' && (
-          <form onSubmit={handleProceedToPayment} className="p-6 space-y-4">
+          <form onSubmit={handleProceedToPayment} className="p-5 sm:p-6 space-y-4">
+            {/* Customer Name */}
             <div>
-              <label className="block text-xs font-bold text-stone-700 mb-1">Business / Shop Name or Contact Person *</label>
+              <label className="block text-xs font-bold text-stone-700 mb-1">Business / Shop or Customer Name *</label>
               <input
                 type="text"
                 required
-                placeholder="e.g. Senthil Silks / Ramesh Kumar"
+                placeholder="e.g. Thanjavur Silks / Ramesh Kumar"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
-                className="w-full px-3.5 py-2.5 text-sm border border-stone-300 rounded-xl focus:ring-2 focus:ring-amber-600 focus:outline-none"
+                className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-stone-300 rounded-xl focus:ring-2 focus:ring-[#7e5222] focus:outline-none"
               />
             </div>
 
+            {/* Phone & City */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-bold text-stone-700 mb-1">WhatsApp Phone Number *</label>
+                <label className="block text-xs font-bold text-stone-700 mb-1">WhatsApp Phone *</label>
                 <input
                   type="tel"
                   required
-                  placeholder="89406XXXXX"
+                  placeholder="8940679198"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full px-3.5 py-2.5 text-sm border border-stone-300 rounded-xl focus:ring-2 focus:ring-amber-600 focus:outline-none"
+                  className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-stone-300 rounded-xl focus:ring-2 focus:ring-[#7e5222] focus:outline-none"
                 />
               </div>
 
@@ -204,11 +194,12 @@ export default function CheckoutModal({ isOpen = true, onClose, cartItems = [], 
                   type="text"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  className="w-full px-3.5 py-2.5 text-sm border border-stone-300 rounded-xl focus:ring-2 focus:ring-amber-600 focus:outline-none"
+                  className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-stone-300 rounded-xl focus:ring-2 focus:ring-[#7e5222] focus:outline-none"
                 />
               </div>
             </div>
 
+            {/* Saved Address Pills */}
             {savedAddresses.length > 0 && (
               <div>
                 <label className="block text-xs font-bold text-stone-700 mb-1">
@@ -220,9 +211,9 @@ export default function CheckoutModal({ isOpen = true, onClose, cartItems = [], 
                       key={addr.id}
                       type="button"
                       onClick={() => handleSelectSavedAddress(addr.id)}
-                      className={`text-xs px-3 py-1.5 rounded-lg border font-medium flex-shrink-0 transition-all ${
+                      className={`text-xs px-3 py-1.5 rounded-xl border font-bold flex-shrink-0 transition-all ${
                         selectedAddressId === addr.id
-                          ? 'border-[#7e5222] bg-amber-50 text-[#7e5222] font-bold'
+                          ? 'border-[#7e5222] bg-amber-50 text-[#7e5222]'
                           : 'border-stone-200 bg-white text-stone-600 hover:border-stone-300'
                       }`}
                     >
@@ -233,184 +224,296 @@ export default function CheckoutModal({ isOpen = true, onClose, cartItems = [], 
               </div>
             )}
 
+            {/* Address */}
             <div>
               <label className="block text-xs font-bold text-stone-700 mb-1">Delivery Address *</label>
               <textarea
                 rows={2}
-                placeholder="Shop address, Street, Landmark"
+                required
+                placeholder="Shop address, Street, Landmark, Pincode"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                className="w-full px-3.5 py-2 text-sm border border-stone-300 rounded-xl focus:ring-2 focus:ring-amber-600 focus:outline-none"
+                className="w-full px-3.5 py-2 text-xs sm:text-sm border border-stone-300 rounded-xl focus:ring-2 focus:ring-[#7e5222] focus:outline-none"
               />
             </div>
 
-            {/* Total summary */}
-            <div className="p-4 bg-amber-50/70 rounded-2xl border border-amber-200/80 flex justify-between items-center">
-              <div>
-                <div className="text-xs text-stone-500 font-semibold">Total Payable Amount</div>
-                <div className="text-xs text-amber-900">(Includes Matching Paise: ₹{uniquePaise.toFixed(2)})</div>
+            {/* Payment Method Selector */}
+            <div className="pt-2">
+              <label className="block text-xs font-bold text-stone-800 mb-2">Select Payment Method</label>
+              <div className="space-y-2">
+                {/* 1. Google Pay / UPI */}
+                <div 
+                  onClick={() => setPaymentMethod('upi')}
+                  className={`p-3.5 rounded-2xl border cursor-pointer transition-all flex items-center justify-between ${
+                    paymentMethod === 'upi'
+                      ? 'border-[#7e5222] bg-amber-50/50 ring-1 ring-[#7e5222]'
+                      : 'border-stone-200 hover:border-stone-300 bg-white'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-white border border-stone-200 flex items-center justify-center shadow-sm">
+                      <QrCode className="w-5 h-5 text-[#7e5222]" />
+                    </div>
+                    <div>
+                      <p className="text-xs sm:text-sm font-bold text-stone-900">Google Pay / PhonePe / UPI QR</p>
+                      <p className="text-[11px] text-stone-500">Scan & Pay to {STORE_SETTINGS.merchantName} ({STORE_SETTINGS.upiId})</p>
+                    </div>
+                  </div>
+                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${
+                    paymentMethod === 'upi' ? 'border-[#7e5222] bg-[#7e5222] text-white' : 'border-stone-300'
+                  }`}>
+                    {paymentMethod === 'upi' && <Check size={12} />}
+                  </div>
+                </div>
+
+                {/* 2. Cash on Delivery */}
+                <div 
+                  onClick={() => setPaymentMethod('cod')}
+                  className={`p-3.5 rounded-2xl border cursor-pointer transition-all flex items-center justify-between ${
+                    paymentMethod === 'cod'
+                      ? 'border-[#7e5222] bg-amber-50/50 ring-1 ring-[#7e5222]'
+                      : 'border-stone-200 hover:border-stone-300 bg-white'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-white border border-stone-200 flex items-center justify-center shadow-sm">
+                      <Banknote className="w-5 h-5 text-emerald-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs sm:text-sm font-bold text-stone-900">Cash on Delivery (COD)</p>
+                      <p className="text-[11px] text-stone-500">Pay cash upon bag delivery at your destination</p>
+                    </div>
+                  </div>
+                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${
+                    paymentMethod === 'cod' ? 'border-[#7e5222] bg-[#7e5222] text-white' : 'border-stone-300'
+                  }`}>
+                    {paymentMethod === 'cod' && <Check size={12} />}
+                  </div>
+                </div>
+
+                {/* 3. Bank Transfer */}
+                <div 
+                  onClick={() => setPaymentMethod('bank')}
+                  className={`p-3.5 rounded-2xl border cursor-pointer transition-all flex items-center justify-between ${
+                    paymentMethod === 'bank'
+                      ? 'border-[#7e5222] bg-amber-50/50 ring-1 ring-[#7e5222]'
+                      : 'border-stone-200 hover:border-stone-300 bg-white'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-white border border-stone-200 flex items-center justify-center shadow-sm">
+                      <Building2 className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs sm:text-sm font-bold text-stone-900">Direct Bank Transfer / NEFT</p>
+                      <p className="text-[11px] text-stone-500">Axis Bank Current Account ({STORE_SETTINGS.merchantName})</p>
+                    </div>
+                  </div>
+                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${
+                    paymentMethod === 'bank' ? 'border-[#7e5222] bg-[#7e5222] text-white' : 'border-stone-300'
+                  }`}>
+                    {paymentMethod === 'bank' && <Check size={12} />}
+                  </div>
+                </div>
               </div>
-              <div className="text-xl font-black text-[#7e5222]">
-                ₹{exactPayableAmount}
+            </div>
+
+            {/* Total Summary */}
+            <div className="p-4 bg-amber-50/80 rounded-2xl border border-amber-200 flex justify-between items-center">
+              <div>
+                <div className="text-xs text-stone-600 font-semibold">Total Order Value ({cartItems.reduce((s, i) => s + i.qty, 0)} bags)</div>
+                <div className="text-[11px] text-[#7e5222] font-bold">100% Factory Wholesale Price</div>
+              </div>
+              <div className="text-2xl font-black text-[#7e5222]">
+                ₹{orderAmount}
               </div>
             </div>
 
             <button
               type="submit"
-              className="w-full flex items-center justify-center gap-2 bg-[#7e5222] hover:bg-[#674221] text-white py-3.5 rounded-xl font-bold text-sm shadow-md transition-all"
+              className="w-full flex items-center justify-center gap-2 bg-[#7e5222] hover:bg-[#674221] text-white py-3.5 rounded-2xl font-bold text-sm shadow-md transition-all active:scale-95"
             >
-              <span>Continue to Google Pay</span>
+              <span>{paymentMethod === 'cod' ? 'Confirm Cash on Delivery Order' : 'Proceed to Payment'}</span>
               <ArrowRight size={16} />
             </button>
           </form>
         )}
 
-        {/* STEP 2: Payment Screen */}
-        {step === 'payment' && (
+        {/* STEP 2: UPI / QR Payment Screen */}
+        {step === 'payment' && paymentMethod === 'upi' && (
           <div className="p-5 sm:p-6 space-y-4 text-center">
-            {/* Amount & Order ID Banner */}
-            <div className="bg-[#fbf7ee] p-4 rounded-2xl border border-[#dec07a] shadow-sm">
-              <span className="text-xs font-bold text-stone-500 uppercase tracking-wider">Exact Payment Amount</span>
-              <div className="text-3xl font-black text-[#7e5222] mt-0.5">
-                ₹{exactPayableAmount}
+            {/* Amount Banner */}
+            <div className="bg-[#fbf7ee] p-3.5 rounded-2xl border border-[#dec07a]">
+              <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">Payable Amount</span>
+              <div className="text-3xl font-black text-[#7e5222]">
+                ₹{orderAmount}
               </div>
-              <p className="text-[11px] text-amber-900 mt-1 font-semibold flex items-center justify-center gap-1.5">
-                <span>Order Ref:</span>
-                <span className="font-mono bg-white px-2 py-0.5 rounded border border-amber-300 font-bold">{orderId}</span>
+              <p className="text-xs text-amber-900 mt-0.5 font-semibold">
+                Order ID: <span className="font-mono bg-white px-2 py-0.5 rounded border border-amber-300 font-bold">{orderId}</span>
               </p>
             </div>
 
-            {/* Official Google Pay Merchant QR Standee Card */}
+            {/* Official Google Pay Standee Card */}
             <div className="flex flex-col items-center">
-              <div className="relative p-2 bg-gradient-to-b from-stone-50 to-white rounded-3xl border-2 border-stone-800 shadow-xl max-w-[260px] overflow-hidden group">
+              <div className="p-2 bg-white rounded-3xl border-2 border-stone-800 shadow-xl max-w-[240px]">
                 <img
                   src={STORE_SETTINGS.qrImage || '/gpay-qr.jpg'}
-                  alt="LIGHT.LTD Google Pay QR Code"
+                  alt="Google Pay QR Code LIGHT.LTD"
                   className="w-full h-auto rounded-2xl object-contain shadow-sm"
                 />
-                <div className="absolute top-3 right-3 bg-green-500 text-white p-1 rounded-full shadow">
-                  <ShieldCheck size={14} />
-                </div>
               </div>
-              <p className="text-xs text-stone-700 font-bold mt-2 flex items-center gap-1.5">
+              <p className="text-xs font-bold text-stone-800 mt-2 flex items-center gap-1.5">
                 <QrCode size={14} className="text-[#7e5222]" />
-                <span>Scan with Google Pay, PhonePe, or Paytm</span>
+                <span>Scan & Pay using Google Pay, PhonePe, or Paytm</span>
               </p>
-              <p className="text-[11px] text-stone-400">Merchant: <strong className="text-stone-700">LIGHT.LTD (+91 89406 79198)</strong></p>
+              <p className="text-[11px] text-stone-500">
+                Merchant: <strong className="text-stone-800">{STORE_SETTINGS.merchantName}</strong> (+91 {STORE_SETTINGS.phone})
+              </p>
             </div>
 
-            {/* Mobile 1-Tap GPay Intent Button */}
+            {/* Mobile App Intent */}
             <div className="block sm:hidden">
               <a
                 href={upiIntentUrl}
                 className="flex items-center justify-center gap-2.5 w-full bg-[#1a73e8] hover:bg-[#1557b0] text-white py-3.5 rounded-2xl font-bold text-sm shadow-md active:scale-95 transition-all"
               >
                 <Smartphone size={18} />
-                <span>Pay via Google Pay App</span>
+                <span>Open Google Pay App</span>
               </a>
-              <p className="text-[10px] text-stone-400 mt-1">Directly launches GPay with ₹{exactPayableAmount}</p>
             </div>
 
-            {/* UPI ID Copy Box */}
+            {/* UPI ID copy */}
             <div className="bg-stone-50 p-2.5 rounded-xl border border-stone-200 flex items-center justify-between text-xs">
               <div className="text-left font-mono truncate text-stone-800 font-bold">
                 <span className="text-stone-400 font-normal select-none">UPI ID: </span>
                 {STORE_SETTINGS.upiId}
               </div>
               <button
+                type="button"
                 onClick={copyUpiId}
-                className="ml-2 px-3 py-1.5 bg-white hover:bg-stone-100 border border-stone-300 rounded-lg text-[#7e5222] font-bold flex items-center gap-1 shadow-sm active:scale-95"
+                className="ml-2 px-3 py-1 bg-white hover:bg-stone-100 border border-stone-300 rounded-lg text-[#7e5222] font-bold shadow-sm"
               >
-                <Copy size={12} />
-                <span>{copied ? 'Copied!' : 'Copy UPI'}</span>
+                {copied ? 'Copied!' : 'Copy UPI'}
               </button>
             </div>
 
-            {/* Real-time Webhook Listening Banner */}
-            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-center gap-2 text-xs font-bold text-emerald-800">
-              <Loader2 size={16} className="animate-spin text-emerald-600" />
-              <span>Listening for Android Payment Notification (Zero Fee)...</span>
-            </div>
-
-            {/* Auto-Verification Actions */}
-            <div className="pt-3 border-t border-stone-200 space-y-3">
+            {/* UTR Input & Confirmation */}
+            <div className="pt-2 border-t border-stone-200 space-y-2.5 text-left">
+              <label className="block text-xs font-bold text-stone-700">Enter Payment UTR / Ref (Optional):</label>
               <div className="flex gap-2">
                 <input
                   type="text"
-                  placeholder="Enter 12-digit UTR from GPay (optional)"
+                  placeholder="e.g. 432109876543"
                   value={utrInput}
                   onChange={(e) => setUtrInput(e.target.value)}
-                  className="flex-1 px-3 py-2 text-xs border border-stone-300 rounded-xl font-mono focus:ring-2 focus:ring-amber-600 focus:outline-none"
+                  className="flex-1 px-3 py-2 text-xs border border-stone-300 rounded-xl font-mono focus:ring-2 focus:ring-[#7e5222] focus:outline-none"
                 />
-                <button
-                  type="button"
-                  onClick={() => triggerAutoApproval(utrInput)}
-                  disabled={isVerifying}
-                  className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1"
-                >
-                  {isVerifying ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
-                  <span>Verify</span>
-                </button>
               </div>
 
-              {/* Instant Simulation Button */}
               <button
                 type="button"
-                onClick={() => triggerAutoApproval()}
-                disabled={isVerifying}
-                className="w-full py-2.5 bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
+                onClick={() => finishOrder({ method: 'Google Pay / UPI', status: 'PAID', utr: utrInput })}
+                disabled={isSubmitting}
+                className="w-full py-3.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-2xl text-xs sm:text-sm font-bold shadow-md transition-all flex items-center justify-center gap-2 active:scale-95"
               >
-                <Zap size={14} className="text-amber-700 fill-amber-700" />
-                <span>⚡ Simulate Google Pay Webhook Receipt (Test Auto-Approve)</span>
+                <CheckCircle2 size={16} />
+                <span>I Have Completed Payment (Confirm Order)</span>
               </button>
             </div>
-
           </div>
         )}
 
-        {/* STEP 3: Success Screen */}
-        {step === 'success' && (
-          <div className="p-8 text-center space-y-4">
-            <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
-              <CheckCircle2 size={36} className="stroke-[2.5]" />
+        {/* STEP 2 (Alternate): Bank Transfer Screen */}
+        {step === 'payment' && paymentMethod === 'bank' && (
+          <div className="p-5 sm:p-6 space-y-4">
+            <div className="bg-blue-50/70 p-4 rounded-2xl border border-blue-200 space-y-2 text-xs sm:text-sm">
+              <h4 className="font-bold text-blue-900 flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-blue-700" />
+                <span>Axis Bank Current Account Details</span>
+              </h4>
+              <div className="space-y-1 font-mono text-stone-800 text-xs">
+                <p><span className="text-stone-500">Account Name:</span> {STORE_SETTINGS.merchantName}</p>
+                <p><span className="text-stone-500">Account Number:</span> 921020048940679</p>
+                <p><span className="text-stone-500">IFSC Code:</span> UTIB0000456 (Thanjavur Branch)</p>
+                <p><span className="text-stone-500">UPI ID:</span> {STORE_SETTINGS.upiId}</p>
+              </div>
             </div>
 
-            <h3 className="text-2xl font-black text-stone-900">Payment Received &amp; Order Approved!</h3>
-            <p className="text-xs text-stone-600 max-w-sm mx-auto">
-              Your Google Pay payment of <strong className="text-stone-900">₹{exactPayableAmount}</strong> was verified and approved by the server. Inventory stock has been automatically deducted.
-            </p>
-
-            <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200 text-left text-xs space-y-1.5 font-mono">
-              <div className="flex justify-between">
-                <span className="text-stone-400">Order Reference:</span>
-                <span className="font-bold text-stone-900">{createdOrder?.id || orderId}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-stone-400">Payment Mode:</span>
-                <span className="font-bold text-emerald-700">Google Pay for Business</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-stone-400">UTR / Ref:</span>
-                <span className="font-bold text-stone-800">{createdOrder?.utr || 'VERIFIED'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-stone-400">Factory Dispatch:</span>
-                <span className="font-bold text-stone-900">LIC Colony, Thanjavur</span>
-              </div>
+            <div>
+              <label className="block text-xs font-bold text-stone-700 mb-1">Enter Transaction Reference / UTR Number *</label>
+              <input
+                type="text"
+                placeholder="NEFT / RTGS / IMPS Reference Number"
+                value={utrInput}
+                onChange={(e) => setUtrInput(e.target.value)}
+                className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-stone-300 rounded-xl font-mono focus:ring-2 focus:ring-[#7e5222] focus:outline-none"
+              />
             </div>
 
             <button
-              onClick={() => {
-                handleFinishSuccess(createdOrder);
-                onClose();
-              }}
-              className="w-full bg-[#7e5222] hover:bg-[#674221] text-white py-3 rounded-xl font-bold text-sm shadow-md"
+              type="button"
+              onClick={() => finishOrder({ method: 'Bank Transfer (NEFT)', status: 'PENDING_VERIFICATION', utr: utrInput })}
+              className="w-full py-3.5 bg-[#7e5222] hover:bg-[#674221] text-white rounded-2xl text-xs sm:text-sm font-bold shadow-md transition-all flex items-center justify-center gap-2"
             >
-              Done &amp; Return to Store
+              <CheckCircle2 size={16} />
+              <span>Confirm Bank Transfer Order</span>
             </button>
           </div>
         )}
 
+        {/* STEP 3: Order Success Invoice Screen */}
+        {step === 'success' && (
+          <div className="p-6 sm:p-8 text-center space-y-4">
+            <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-sm">
+              <CheckCircle2 size={36} className="stroke-[2.5]" />
+            </div>
+
+            <h3 className="text-xl sm:text-2xl font-black text-stone-900">
+              {createdOrder?.paymentMethod?.includes('Cash') ? 'Order Placed (Cash on Delivery)!' : 'Payment Recorded & Order Confirmed!'}
+            </h3>
+            <p className="text-xs sm:text-sm text-stone-600 max-w-sm mx-auto">
+              Thank you, <strong className="text-stone-900">{createdOrder?.customerName}</strong>! Your order has been placed successfully and sent to our Thanjavur manufacturing desk.
+            </p>
+
+            <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200 text-left text-xs space-y-1.5 font-mono">
+              <div className="flex justify-between">
+                <span className="text-stone-400">Order ID:</span>
+                <span className="font-bold text-stone-900">{createdOrder?.id}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-stone-400">Payment Mode:</span>
+                <span className="font-bold text-emerald-700">{createdOrder?.paymentMethod}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-stone-400">Total Paid/Payable:</span>
+                <span className="font-black text-[#7e5222]">₹{createdOrder?.totalAmount?.toFixed(2)}</span>
+              </div>
+              {createdOrder?.utr && (
+                <div className="flex justify-between">
+                  <span className="text-stone-400">Reference/UTR:</span>
+                  <span className="font-bold text-stone-700">{createdOrder?.utr}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
+              <button
+                onClick={onClose}
+                className="flex-1 py-3 bg-[#7e5222] hover:bg-[#674221] text-white rounded-xl text-xs font-bold transition-all shadow-md"
+              >
+                Continue Shopping
+              </button>
+              <a
+                href={`https://wa.me/${STORE_SETTINGS.whatsapp}?text=Hi%20Classic%20Bags!%20Confirmed%20Order%20${createdOrder?.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5"
+              >
+                <span>Track on WhatsApp</span>
+              </a>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

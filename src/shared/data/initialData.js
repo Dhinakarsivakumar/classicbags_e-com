@@ -5,7 +5,7 @@ export const STORE_SETTINGS = {
   phone: '+91 89406 79198',
   whatsapp: '918940679198',
   upiId: 'sdhinakar6-1@oksbi',
-  merchantName: 'Dhinakar S (Classic Bags)',
+  merchantName: 'Dhinakar S',
   currency: 'INR',
   webhookEndpoint: 'https://api.classicbags.thanjavur/webhook/gpay',
   webhookSecret: 'sec_cb_8940679198_live_hash',

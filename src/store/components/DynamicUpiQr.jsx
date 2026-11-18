@@ -14,10 +14,11 @@ export default function DynamicUpiQr({
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Dynamic UPI URL encoding exact amount, payee, and order reference
+  // Dynamic UPI URL formatted cleanly for Personal (P2P) UPI compliance
+  // Removing merchant-only params (tr, tid) which trigger NPCI bank limit errors on personal VPAs
   const numAmount = parseFloat(amount || 0).toFixed(2);
-  const note = `Order ${orderId || 'CB-ORDER'}`;
-  const upiIntentUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(merchantName)}&am=${numAmount}&cu=INR&tn=${encodeURIComponent(note)}&tr=${orderId || 'CB' + Date.now()}`;
+  const cleanPayee = (merchantName || 'Dhinakar S').replace(/[()]/g, '').trim();
+  const upiIntentUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(cleanPayee)}&am=${numAmount}&cu=INR&tn=${encodeURIComponent(orderId || 'ClassicBags')}`;
 
   useEffect(() => {
     let isMounted = true;

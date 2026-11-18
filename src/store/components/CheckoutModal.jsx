@@ -267,63 +267,69 @@ export default function CheckoutModal({ isOpen = true, onClose, cartItems = [], 
 
         {/* STEP 2: Payment Screen */}
         {step === 'payment' && (
-          <div className="p-6 space-y-5 text-center">
-            <div className="bg-[#fbf7ee] p-4 rounded-2xl border border-[#dec07a]">
-              <span className="text-xs font-semibold text-stone-500 uppercase tracking-wider">Exact Payment Amount</span>
+          <div className="p-5 sm:p-6 space-y-4 text-center">
+            {/* Amount & Order ID Banner */}
+            <div className="bg-[#fbf7ee] p-4 rounded-2xl border border-[#dec07a] shadow-sm">
+              <span className="text-xs font-bold text-stone-500 uppercase tracking-wider">Exact Payment Amount</span>
               <div className="text-3xl font-black text-[#7e5222] mt-0.5">
                 ₹{exactPayableAmount}
               </div>
-              <p className="text-[11px] text-amber-900 mt-1 font-semibold">
-                Order ID: <span className="font-mono bg-white px-1.5 py-0.5 rounded border border-amber-300">{orderId}</span>
+              <p className="text-[11px] text-amber-900 mt-1 font-semibold flex items-center justify-center gap-1.5">
+                <span>Order Ref:</span>
+                <span className="font-mono bg-white px-2 py-0.5 rounded border border-amber-300 font-bold">{orderId}</span>
               </p>
             </div>
 
-            {/* Mobile: Direct GPay Launch */}
+            {/* Official Google Pay Merchant QR Standee Card */}
+            <div className="flex flex-col items-center">
+              <div className="relative p-2 bg-gradient-to-b from-stone-50 to-white rounded-3xl border-2 border-stone-800 shadow-xl max-w-[260px] overflow-hidden group">
+                <img
+                  src={STORE_SETTINGS.qrImage || '/gpay-qr.jpg'}
+                  alt="LIGHT.LTD Google Pay QR Code"
+                  className="w-full h-auto rounded-2xl object-contain shadow-sm"
+                />
+                <div className="absolute top-3 right-3 bg-green-500 text-white p-1 rounded-full shadow">
+                  <ShieldCheck size={14} />
+                </div>
+              </div>
+              <p className="text-xs text-stone-700 font-bold mt-2 flex items-center gap-1.5">
+                <QrCode size={14} className="text-[#7e5222]" />
+                <span>Scan with Google Pay, PhonePe, or Paytm</span>
+              </p>
+              <p className="text-[11px] text-stone-400">Merchant: <strong className="text-stone-700">LIGHT.LTD (+91 89406 79198)</strong></p>
+            </div>
+
+            {/* Mobile 1-Tap GPay Intent Button */}
             <div className="block sm:hidden">
               <a
                 href={upiIntentUrl}
-                className="flex items-center justify-center gap-3 w-full bg-stone-900 hover:bg-black text-white py-3.5 rounded-2xl font-bold text-sm shadow-lg active:scale-95 transition-all"
+                className="flex items-center justify-center gap-2.5 w-full bg-[#1a73e8] hover:bg-[#1557b0] text-white py-3.5 rounded-2xl font-bold text-sm shadow-md active:scale-95 transition-all"
               >
-                <Smartphone size={20} className="text-amber-400" />
-                <span>Tap to Pay with Google Pay</span>
+                <Smartphone size={18} />
+                <span>Pay via Google Pay App</span>
               </a>
-              <p className="text-[11px] text-stone-400 mt-2">Opens Google Pay app directly on your phone.</p>
+              <p className="text-[10px] text-stone-400 mt-1">Directly launches GPay with ₹{exactPayableAmount}</p>
             </div>
 
-            {/* Desktop: QR Code */}
-            <div className="hidden sm:flex flex-col items-center">
-              <div className="p-3 bg-white rounded-2xl border-2 border-stone-800 shadow-md inline-block">
-                <img
-                  src={qrCodeUrl}
-                  alt="Google Pay QR Code"
-                  className="w-44 h-44 rounded-xl object-contain"
-                />
-              </div>
-              <p className="text-xs text-stone-600 font-medium mt-2 flex items-center gap-1">
-                <QrCode size={14} className="text-stone-800" />
-                <span>Scan with Google Pay or any UPI app</span>
-              </p>
-            </div>
-
-            {/* UPI ID copy */}
+            {/* UPI ID Copy Box */}
             <div className="bg-stone-50 p-2.5 rounded-xl border border-stone-200 flex items-center justify-between text-xs">
-              <div className="text-left font-mono truncate text-stone-700">
-                <span className="text-stone-400 select-none">UPI ID: </span>
+              <div className="text-left font-mono truncate text-stone-800 font-bold">
+                <span className="text-stone-400 font-normal select-none">UPI ID: </span>
                 {STORE_SETTINGS.upiId}
               </div>
               <button
                 onClick={copyUpiId}
-                className="ml-2 px-2.5 py-1 bg-white hover:bg-stone-100 border border-stone-300 rounded text-stone-700 font-semibold flex items-center gap-1"
+                className="ml-2 px-3 py-1.5 bg-white hover:bg-stone-100 border border-stone-300 rounded-lg text-[#7e5222] font-bold flex items-center gap-1 shadow-sm active:scale-95"
               >
                 <Copy size={12} />
-                <span>{copied ? 'Copied!' : 'Copy'}</span>
+                <span>{copied ? 'Copied!' : 'Copy UPI'}</span>
               </button>
             </div>
 
-            {/* Real-time Listening Banner */}
-            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-center gap-2 text-xs font-semibold text-emerald-800">
+            {/* Real-time Webhook Listening Banner */}
+            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-center gap-2 text-xs font-bold text-emerald-800">
               <Loader2 size={16} className="animate-spin text-emerald-600" />
-              <span>Listening for Android Google Pay Webhook signal...</span>
+              <span>Listening for Android Payment Notification (Zero Fee)...</span>
             </div>
 
             {/* Auto-Verification Actions */}

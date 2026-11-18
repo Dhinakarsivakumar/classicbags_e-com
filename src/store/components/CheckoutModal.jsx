@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { STORE_SETTINGS } from '../../shared/data/initialData';
 import { Storage } from '../../shared/services/storage';
+import DynamicUpiQr from './DynamicUpiQr';
 
 export default function CheckoutModal({ 
   isOpen = true, 
@@ -339,63 +340,17 @@ export default function CheckoutModal({
           </form>
         )}
 
-        {/* STEP 2: UPI / QR Payment Screen */}
+        {/* STEP 2: UPI / Dynamic QR Payment Screen */}
         {step === 'payment' && paymentMethod === 'upi' && (
           <div className="p-5 sm:p-6 space-y-4 text-center">
-            {/* Amount Banner */}
-            <div className="bg-[#fbf7ee] p-3.5 rounded-2xl border border-[#dec07a]">
-              <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">Payable Amount</span>
-              <div className="text-3xl font-black text-[#7e5222]">
-                ₹{orderAmount}
-              </div>
-              <p className="text-xs text-amber-900 mt-0.5 font-semibold">
-                Order ID: <span className="font-mono bg-white px-2 py-0.5 rounded border border-amber-300 font-bold">{orderId}</span>
-              </p>
-            </div>
-
-            {/* Official Google Pay Standee Card */}
-            <div className="flex flex-col items-center">
-              <div className="p-2 bg-white rounded-3xl border-2 border-stone-800 shadow-xl max-w-[240px]">
-                <img
-                  src={STORE_SETTINGS.qrImage || '/gpay-qr.jpg'}
-                  alt="Google Pay QR Code LIGHT.LTD"
-                  className="w-full h-auto rounded-2xl object-contain shadow-sm"
-                />
-              </div>
-              <p className="text-xs font-bold text-stone-800 mt-2 flex items-center gap-1.5">
-                <QrCode size={14} className="text-[#7e5222]" />
-                <span>Scan & Pay using Google Pay, PhonePe, or Paytm</span>
-              </p>
-              <p className="text-[11px] text-stone-500">
-                Merchant: <strong className="text-stone-800">{STORE_SETTINGS.merchantName}</strong> (+91 {STORE_SETTINGS.phone})
-              </p>
-            </div>
-
-            {/* Mobile App Intent */}
-            <div className="block sm:hidden">
-              <a
-                href={upiIntentUrl}
-                className="flex items-center justify-center gap-2.5 w-full bg-[#1a73e8] hover:bg-[#1557b0] text-white py-3.5 rounded-2xl font-bold text-sm shadow-md active:scale-95 transition-all"
-              >
-                <Smartphone size={18} />
-                <span>Open Google Pay App</span>
-              </a>
-            </div>
-
-            {/* UPI ID copy */}
-            <div className="bg-stone-50 p-2.5 rounded-xl border border-stone-200 flex items-center justify-between text-xs">
-              <div className="text-left font-mono truncate text-stone-800 font-bold">
-                <span className="text-stone-400 font-normal select-none">UPI ID: </span>
-                {STORE_SETTINGS.upiId}
-              </div>
-              <button
-                type="button"
-                onClick={copyUpiId}
-                className="ml-2 px-3 py-1 bg-white hover:bg-stone-100 border border-stone-300 rounded-lg text-[#7e5222] font-bold shadow-sm"
-              >
-                {copied ? 'Copied!' : 'Copy UPI'}
-              </button>
-            </div>
+            {/* Real-time Dynamic UPI QR Code (Directly pre-fills Amount & Order ID) */}
+            <DynamicUpiQr 
+              amount={orderAmount} 
+              orderId={orderId} 
+              merchantName={STORE_SETTINGS.merchantName}
+              upiId={STORE_SETTINGS.upiId}
+              phone={STORE_SETTINGS.phone}
+            />
 
             {/* UTR Input & Confirmation */}
             <div className="pt-2 border-t border-stone-200 space-y-2.5 text-left">

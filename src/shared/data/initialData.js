@@ -6,7 +6,7 @@ export const STORE_SETTINGS = {
   whatsapp: '918940679198',
   upiId: '8940679198@okbizaxis',
   merchantName: 'LIGHT.LTD',
-  qrImage: '/gpay-qr.jpg',
+  currency: 'INR',
   webhookEndpoint: 'https://api.classicbags.thanjavur/webhook/gpay',
   webhookSecret: 'sec_cb_8940679198_live_hash',
   adminPin: '1234',

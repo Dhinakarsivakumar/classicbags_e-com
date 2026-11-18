@@ -132,12 +132,15 @@ export default function CheckoutModal({
   useEffect(() => {
     if (step !== 'payment') return;
 
-    const checkAutoVerification = () => {
+    let isMounted = true;
+
+    const checkAutoVerification = async () => {
       const orders = Storage.getOrders() || [];
       const thisOrder = orders.find(o => o.id === orderId);
 
       // 1. Matched directly by WebhookEngine
       if (thisOrder && (thisOrder.status === 'PAID_APPROVED' || thisOrder.status === 'PAID')) {
+        if (!isMounted) return true;
         setCreatedOrder(thisOrder);
         setAutoVerified(true);
         setStep('success');
@@ -146,7 +149,62 @@ export default function CheckoutModal({
         return true;
       }
 
-      // 2. Fallback check: Did a webhook log arrive matching this order amount in the last 10 minutes?
+      // 2. Query Webhook Server for real-time payments received by Android Phone
+      try {
+        const endpoints = [
+          'http://10.220.210.247:3002/api/webhook/recent',
+          'http://localhost:3002/api/webhook/recent'
+        ];
+
+        for (const ep of endpoints) {
+          try {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), 1200);
+            const res = await fetch(ep, { signal: controller.signal });
+            clearTimeout(timer);
+
+            if (res.ok) {
+              const data = await res.json();
+              if (data.payments && Array.isArray(data.payments)) {
+                // Find payment matching orderAmount in the last 15 minutes
+                const match = data.payments.find(p => {
+                  const matchAmt = Math.abs(parseFloat(p.amount) - parseFloat(orderAmount)) < 0.05;
+                  const pTime = p.timestamp ? new Date(p.timestamp).getTime() : new Date(p.receivedAt).getTime();
+                  const isRecent = (Date.now() - pTime) < 15 * 60 * 1000;
+                  return matchAmt && isRecent;
+                });
+
+                if (match && thisOrder && thisOrder.status === 'PENDING_PAYMENT') {
+                  const approved = {
+                    ...thisOrder,
+                    status: 'PAID_APPROVED',
+                    utr: match.utr || ('UTR' + Date.now()),
+                    paidAt: match.receivedAt || new Date().toISOString(),
+                    approvalType: 'AUTOMATIC_SMS_WEBHOOK',
+                    sender: match.sender || 'Customer'
+                  };
+                  const updated = orders.map(o => o.id === orderId ? approved : o);
+                  Storage.saveOrders(updated);
+                  if (!isMounted) return true;
+                  setCreatedOrder(approved);
+                  setAutoVerified(true);
+                  setStep('success');
+                  if (onOrderCompleted) onOrderCompleted(approved);
+                  if (onOrderSuccess) onOrderSuccess(approved);
+                  return true;
+                }
+              }
+              break;
+            }
+          } catch {
+            // endpoint unreachable, try next
+          }
+        }
+      } catch {
+        // network polling silent continue
+      }
+
+      // 3. Fallback check: Did a webhook log arrive matching this order amount in the last 10 minutes?
       const logs = Storage.getWebhookLogs() || [];
       const recentLog = logs.find(log => {
         const matchesAmt = Math.abs(parseFloat(log.amount) - parseFloat(orderAmount)) < 0.05;
@@ -164,6 +222,7 @@ export default function CheckoutModal({
         };
         const updated = orders.map(o => o.id === orderId ? approved : o);
         Storage.saveOrders(updated);
+        if (!isMounted) return true;
         setCreatedOrder(approved);
         setAutoVerified(true);
         setStep('success');
@@ -175,8 +234,9 @@ export default function CheckoutModal({
       return false;
     };
 
-    // Poll every 1.5 seconds
-    const interval = setInterval(checkAutoVerification, 1500);
+    // Poll every 2 seconds
+    const interval = setInterval(checkAutoVerification, 2000);
+    checkAutoVerification();
 
     // Listen to storage events immediately
     const cleanupStorage = Storage.onStorageChange((key) => {
@@ -186,6 +246,7 @@ export default function CheckoutModal({
     });
 
     return () => {
+      isMounted = false;
       clearInterval(interval);
       if (cleanupStorage) cleanupStorage();
     };

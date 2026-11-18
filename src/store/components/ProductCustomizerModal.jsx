@@ -28,8 +28,8 @@ export default function ProductCustomizerModal({ product, onClose, onAddToCart }
       if (qty >= tier.min) price = tier.price;
     }
     const gsmDiff = selectedGsm - product.gsm;
-    const gsmAdjustment = product.minOrderQty === 1 ? 0 : gsmDiff * 0.01;
-    return Math.max(price + gsmAdjustment, 1);
+    const gsmAdjustment = product.pricePerUnit < 0.1 ? 0 : gsmDiff * 0.01;
+    return Math.max(price + gsmAdjustment, 0.01);
   }, [qty, selectedGsm, product]);
 
   const totalPrice = unitPrice * qty;

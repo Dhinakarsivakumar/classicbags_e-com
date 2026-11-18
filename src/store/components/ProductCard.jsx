@@ -105,7 +105,9 @@ export default function ProductCard({
           <div className="mt-3 bg-stone-50 rounded-xl p-2.5 border border-stone-100">
             <div className="text-[11px] text-stone-500 font-medium mb-1.5 flex justify-between">
               <span>Bulk Tier Pricing:</span>
-              <span className="text-[#7e5222] font-semibold">From ₹{tierPricing[tierPricing.length - 1].price.toFixed(2)}</span>
+              <span className="text-[#7e5222] font-semibold">
+                {product.id === 'cb-001' ? '100 Bags = ₹1.00 (Test Offer)' : `From ₹${tierPricing[tierPricing.length - 1].price.toFixed(2)}`}
+              </span>
             </div>
             <div className="grid grid-cols-4 gap-1 text-center">
               {tierPricing.map((tier, idx) => (

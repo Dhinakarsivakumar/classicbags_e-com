@@ -37,18 +37,18 @@ export default function App() {
   useEffect(() => {
     const stored = Storage.getProducts();
     if (stored && stored.length > 0) {
-      // Ensure cb-001 is updated with the ₹1 test pricing
+      // Ensure cb-001 is updated with 100 Bags = ₹1.00 (₹0.01 per bag)
       const synced = stored.map(p => p.id === 'cb-001' ? {
         ...p,
-        pricePerUnit: 1.00,
-        minOrderQty: 1,
+        pricePerUnit: 0.01,
+        minOrderQty: 100,
         name: 'Brown Kraft Shopper Bag',
-        tamilName: 'பிரவுன் கிராஃப்ட் ஷாப்பர் பேக் (₹1 Test Bag)',
+        tamilName: 'பிரவுன் கிராஃப்ட் ஷாப்பர் பேக் (100 Bags = ₹1 Test Offer)',
         tierPricing: [
-          { min: 1, price: 1.00 },
-          { min: 100, price: 1.00 },
-          { min: 500, price: 1.00 },
-          { min: 2000, price: 1.00 }
+          { min: 100, price: 0.01 },
+          { min: 500, price: 0.01 },
+          { min: 2000, price: 0.01 },
+          { min: 5000, price: 0.01 }
         ]
       } : p);
       Storage.saveProducts(synced);

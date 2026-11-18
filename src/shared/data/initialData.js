@@ -23,15 +23,15 @@ export const INITIAL_PRODUCTS = [
   {
     id: 'cb-001',
     name: 'Brown Kraft Shopper Bag',
-    tamilName: 'பிரவுன் கிராஃப்ட் ஷாப்பர் பேக் (₹1 Test Bag)',
+    tamilName: 'பிரவுன் கிராஃப்ட் ஷாப்பர் பேக் (100 Bags = ₹1 Test Offer)',
     category: 'kraft',
-    pricePerUnit: 1.00,
-    minOrderQty: 1,
+    pricePerUnit: 0.01,
+    minOrderQty: 100,
     stockUnits: 15400,
     gsm: 120,
     sizes: ['8×10×3.5 in', '10×14×4 in', '12×16×5 in'],
     handles: ['Twisted Paper', 'Flat Tape'],
-    description: '100% biodegradable virgin brown kraft with reinforced twisted handle. Special ₹1 unit for testing live dynamic UPI QR code payments.',
+    description: '100% biodegradable virgin brown kraft with reinforced twisted handle. Special bulk offer: 100 bags for just ₹1 (₹0.01/bag) to test live dynamic UPI QR payments.',
     images: [
       'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=800&q=80',
       'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&w=800&q=80',
@@ -39,10 +39,10 @@ export const INITIAL_PRODUCTS = [
       'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=800&q=80'
     ],
     tierPricing: [
-      { min: 1, price: 1.00 },
-      { min: 100, price: 1.00 },
-      { min: 500, price: 1.00 },
-      { min: 2000, price: 1.00 }
+      { min: 100, price: 0.01 },
+      { min: 500, price: 0.01 },
+      { min: 2000, price: 0.01 },
+      { min: 5000, price: 0.01 }
     ],
     featured: true,
     rating: 4.9,

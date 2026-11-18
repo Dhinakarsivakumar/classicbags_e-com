@@ -11,7 +11,8 @@ export default function CustomerSettingsModal({
   isOpen, 
   onClose, 
   activeTab: initialTab = 'orders', 
-  onSelectProduct 
+  onSelectProduct,
+  onOpenAdmin
 }) {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [orders, setOrders] = useState([]);
@@ -30,6 +31,7 @@ export default function CustomerSettingsModal({
     isDefault: false
   });
   const [saveSuccess, setSaveSuccess] = useState('');
+  const isAdminUser = Storage.isAdminPhone(profile?.phone);
 
   useEffect(() => {
     if (isOpen) {
@@ -145,9 +147,9 @@ export default function CustomerSettingsModal({
           </button>
         </div>
 
-        {/* MOBILE EQUAL-WIDTH 3-TAB SEGMENTED BAR (Phones Only - Zero text clipping) */}
+        {/* MOBILE EQUAL-WIDTH SEGMENTED BAR */}
         <div className="md:hidden bg-[#fbf7ee] p-2 border-b border-stone-200 flex-shrink-0">
-          <div className="grid grid-cols-3 gap-1 bg-stone-200/70 p-1 rounded-2xl">
+          <div className={`grid ${isAdminUser ? 'grid-cols-4' : 'grid-cols-3'} gap-1 bg-stone-200/70 p-1 rounded-2xl`}>
             <button
               onClick={() => setActiveTab('orders')}
               className={`py-2 px-1 text-center rounded-xl font-bold text-xs flex items-center justify-center gap-1 transition-all ${
@@ -183,6 +185,18 @@ export default function CustomerSettingsModal({
               <User className="w-3.5 h-3.5" />
               <span>Profile</span>
             </button>
+
+            {isAdminUser && (
+              <button
+                onClick={() => {
+                  if (onOpenAdmin) onOpenAdmin();
+                }}
+                className="py-2 px-1 text-center rounded-xl font-extrabold text-xs flex items-center justify-center gap-1 bg-amber-600 text-white shadow-sm animate-pulse"
+              >
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>Admin</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -263,6 +277,25 @@ export default function CustomerSettingsModal({
               </div>
               <ChevronRight className="w-4 h-4 opacity-50" />
             </button>
+
+            {isAdminUser && (
+              <div className="pt-2">
+                <button
+                  onClick={() => {
+                    if (onOpenAdmin) onOpenAdmin();
+                  }}
+                  className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl font-bold text-xs bg-gradient-to-r from-stone-900 to-[#674221] text-amber-200 hover:from-black hover:to-[#55361b] shadow-md border border-amber-500/30 transition-all group"
+                >
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
+                    <span>Admin Control</span>
+                  </div>
+                  <span className="text-[10px] bg-amber-400/20 text-amber-300 font-extrabold px-1.5 py-0.5 rounded border border-amber-400/30">
+                    OWNER
+                  </span>
+                </button>
+              </div>
+            )}
           </nav>
 
           {/* Helpline Footer */}
@@ -675,6 +708,37 @@ export default function CustomerSettingsModal({
             {/* TAB 3: PROFILE */}
             {activeTab === 'profile' && (
               <div className="max-w-lg space-y-4">
+                {isAdminUser && (
+                  <div className="p-4 bg-gradient-to-r from-stone-900 via-stone-850 to-[#674221] text-white rounded-2xl border border-amber-600/40 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fadeIn">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center flex-shrink-0">
+                        <ShieldCheck className="w-5 h-5 text-amber-400" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-bold text-xs sm:text-sm text-white">Classic Bags Factory Owner</h4>
+                          <span className="text-[10px] bg-amber-500/30 text-amber-300 font-extrabold px-1.5 py-0.5 rounded">
+                            VERIFIED
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-amber-200/80 mt-0.5">
+                          Owner access to factory inventory, webhooks &amp; cloud orders.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (onOpenAdmin) onOpenAdmin();
+                      }}
+                      className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-xs rounded-xl shadow-md transition-transform active:scale-95 whitespace-nowrap flex items-center justify-center gap-1.5"
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      <span>Open Admin</span>
+                    </button>
+                  </div>
+                )}
+
                 <div className="p-3.5 bg-stone-50 rounded-2xl border border-stone-200 flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-amber-100 text-[#7e5222] flex items-center justify-center font-bold flex-shrink-0">
                     <Building2 className="w-5 h-5" />

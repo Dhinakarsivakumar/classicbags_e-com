@@ -10,6 +10,7 @@ import CheckoutModal from './components/CheckoutModal';
 import CustomerSettingsModal from './components/CustomerSettingsModal';
 import WishlistDrawer from './components/WishlistDrawer';
 import Footer from './components/Footer';
+import AdminApp from '../admin/App';
 import { Search, SlidersHorizontal, ArrowUpDown, Sparkles, CheckCircle2 } from 'lucide-react';
 
 export default function App() {
@@ -23,6 +24,7 @@ export default function App() {
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState('orders');
+  const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('featured');
@@ -262,6 +264,11 @@ export default function App() {
     }
   }, [products]);
 
+  const handleOpenAdmin = useCallback(() => {
+    setIsSettingsOpen(false);
+    setIsAdminOpen(true);
+  }, []);
+
   return (
     <div className="min-h-screen bg-[#fbf7ee] text-stone-900 selection:bg-amber-200">
       {/* Toast Alert */}
@@ -436,7 +443,7 @@ export default function App() {
         </div>
       </section>
 
-      <Footer />
+      <Footer onOpenAdmin={handleOpenAdmin} />
 
       {/* MODALS & DRAWERS */}
 
@@ -480,6 +487,7 @@ export default function App() {
           isOpen={isSettingsOpen}
           onClose={() => setIsSettingsOpen(false)}
           activeTab={settingsTab}
+          onOpenAdmin={handleOpenAdmin}
         />
       )}
 
@@ -492,6 +500,11 @@ export default function App() {
           onOrderCompleted={handleOrderSuccess}
           onOrderSuccess={handleOrderSuccess}
         />
+      )}
+
+      {/* 6. Admin Panel (Factory Owner Restricted) */}
+      {isAdminOpen && (
+        <AdminApp onClose={() => setIsAdminOpen(false)} />
       )}
     </div>
   );

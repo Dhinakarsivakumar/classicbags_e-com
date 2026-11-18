@@ -1,4 +1,4 @@
-// Classic Bags - Universal UPI & SMS Webhook Server
+// Classic Bags - Universal UPI & SMS Webhook Server & Cloud Sync API
 // Bridges Android Payment Listener App (ClassicBagsListener.apk) with Customer Store & Admin Portal
 
 import http from 'http';
@@ -11,6 +11,7 @@ const __dirname = path.dirname(__filename);
 
 const PORT = 3002;
 const LOG_FILE = path.join(__dirname, 'webhook_events.json');
+const ORDERS_FILE = path.join(__dirname, 'orders.json');
 
 // In-memory transaction store (persisted to webhook_events.json)
 let receivedPayments = [];
@@ -30,11 +31,29 @@ const savePayments = () => {
   }
 };
 
+// In-memory orders store (persisted to orders.json)
+let storedOrders = [];
+try {
+  if (fs.existsSync(ORDERS_FILE)) {
+    storedOrders = JSON.parse(fs.readFileSync(ORDERS_FILE, 'utf-8'));
+  }
+} catch {
+  storedOrders = [];
+}
+
+const saveOrdersToDisk = () => {
+  try {
+    fs.writeFileSync(ORDERS_FILE, JSON.stringify(storedOrders, null, 2));
+  } catch (err) {
+    console.error('Failed to persist orders:', err.message);
+  }
+};
+
 const server = http.createServer((req, res) => {
-  // CORS Headers - allow both local and remote storefronts to query webhook status
+  // CORS Headers - allow both local and remote storefronts to query webhook status & orders
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-ClassicBags-Signature');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-ClassicBags-Signature, Authorization');
 
   if (req.method === 'OPTIONS') {
     res.writeHead(200);
@@ -49,9 +68,10 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       status: 'ONLINE',
-      service: 'Classic Bags Webhook Server',
+      service: 'Classic Bags Cloud & Webhook Server',
       timestamp: new Date().toISOString(),
       totalPaymentsReceived: receivedPayments.length,
+      totalOrdersStored: storedOrders.length,
       latestPayment: receivedPayments[receivedPayments.length - 1] || null
     }));
     return;
@@ -74,7 +94,6 @@ const server = http.createServer((req, res) => {
     req.on('end', () => {
       try {
         const payload = JSON.parse(body || '{}');
-        const signature = req.headers['x-classicbags-signature'] || 'none';
 
         const paymentRecord = {
           id: `pay-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`,
@@ -114,29 +133,100 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // 4. Test Simulation endpoint: POST /api/webhook/test
-  if (url.pathname === '/api/webhook/test' && req.method === 'POST') {
+  // 4. Fetch All Cloud Orders: GET /api/orders
+  if (url.pathname === '/api/orders' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      success: true,
+      orders: storedOrders
+    }));
+    return;
+  }
+
+  // 5. Sync / Save Orders from Store or Admin: POST /api/orders
+  if (url.pathname === '/api/orders' && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => { body += chunk; });
     req.on('end', () => {
       try {
         const parsed = JSON.parse(body || '{}');
-        const testAmt = parseFloat(parsed.amount) || 1.00;
-        const testPayment = {
-          id: `test-${Date.now()}`,
-          amount: testAmt,
-          utr: 'UTR' + Math.floor(100000000000 + Math.random() * 900000000000),
-          sender: 'Test GPay / Canara User',
-          source: 'test_simulation',
-          rawNotification: `A/c credited by Rs ${testAmt.toFixed(2)} on 18-Nov-26 by UPI`,
-          timestamp: Date.now(),
-          receivedAt: new Date().toISOString()
-        };
-        receivedPayments.push(testPayment);
-        savePayments();
+        const incomingOrders = Array.isArray(parsed.orders) ? parsed.orders : (parsed.order ? [parsed.order] : []);
+
+        for (const inc of incomingOrders) {
+          if (!inc || !inc.id) continue;
+          const idx = storedOrders.findIndex(o => o.id === inc.id);
+          if (idx >= 0) {
+            storedOrders[idx] = { ...storedOrders[idx], ...inc };
+          } else {
+            storedOrders.unshift(inc);
+          }
+        }
+
+        saveOrdersToDisk();
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true, payment: testPayment }));
+        res.end(JSON.stringify({
+          success: true,
+          message: 'Orders synced to cloud successfully',
+          count: storedOrders.length
+        }));
+      } catch (err) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: err.message }));
+      }
+    });
+    return;
+  }
+
+  // 6. Update Single Order Status: POST /api/orders/update-status
+  if (url.pathname === '/api/orders/update-status' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const { orderId, status } = JSON.parse(body || '{}');
+        const order = storedOrders.find(o => o.id === orderId);
+        if (order) {
+          order.status = status;
+          order.updatedAt = new Date().toISOString();
+          saveOrdersToDisk();
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, order }));
+        } else {
+          res.writeHead(404, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, message: 'Order not found' }));
+        }
+      } catch (err) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: err.message }));
+      }
+    });
+    return;
+  }
+
+  // 7. Verify Admin Credentials: POST /api/admin/login
+  if (url.pathname === '/api/admin/login' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const { username, password, pin } = JSON.parse(body || '{}');
+        const validUser = (!username || username === 'admin' || username === 'dhinakar' || username === '8940679198');
+        const validPass = (password === 'ClassicBags@2026' || password === 'dhinakar2026' || pin === '1234');
+
+        if (validUser && validPass) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            success: true,
+            role: 'SUPER_ADMIN',
+            ownerName: 'Dhinakar S',
+            phone: '8940679198',
+            token: `adm_${Date.now()}_auth_token`
+          }));
+        } else {
+          res.writeHead(401, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, message: 'Invalid credentials. Only authorized owner may login.' }));
+        }
       } catch (err) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: false, error: err.message }));
@@ -151,8 +241,9 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`\n🚀 [Classic Bags Webhook Server Running]`);
+  console.log(`\n🚀 [Classic Bags Webhook & Cloud Sync Server Running]`);
   console.log(`➜ Local Port:    http://localhost:${PORT}/api/webhook/status`);
   console.log(`➜ Network URL:   http://10.220.210.247:${PORT}/api/webhook/gpay`);
+  console.log(`➜ Cloud Orders:  http://10.220.210.247:${PORT}/api/orders`);
   console.log(`➜ Status:        READY to receive Bank SMS & GPay notifications!\n`);
 });

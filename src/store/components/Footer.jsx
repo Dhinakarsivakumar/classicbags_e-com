@@ -1,8 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Phone, MapPin, ShieldCheck, Mail } from 'lucide-react';
 import { STORE_SETTINGS } from '../../shared/data/initialData';
 
-export default function Footer() {
+export default function Footer({ onOpenAdmin }) {
+  const [tapCount, setTapCount] = useState(0);
+
+  const handleSecretTap = () => {
+    const next = tapCount + 1;
+    if (next >= 3) {
+      setTapCount(0);
+      if (onOpenAdmin) onOpenAdmin();
+    } else {
+      setTapCount(next);
+      setTimeout(() => setTapCount(0), 1800);
+    }
+  };
+
   return (
     <footer className="bg-stone-900 text-stone-400 text-xs py-12 border-t border-stone-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -47,8 +60,14 @@ export default function Footer() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-10 pt-6 border-t border-stone-800/80 flex flex-col sm:flex-row items-center justify-between text-stone-500 text-[11px] gap-2">
-        <span>© {new Date().getFullYear()} Classic Bags Thanjavur. All rights reserved.</span>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-10 pt-6 border-t border-stone-800/80 flex flex-col sm:flex-row items-center justify-between text-stone-500 text-[11px] gap-2 select-none">
+        <span 
+          onClick={handleSecretTap}
+          className="cursor-default hover:text-stone-400 transition-colors"
+          title="Classic Bags Thanjavur"
+        >
+          © {new Date().getFullYear()} Classic Bags Thanjavur. All rights reserved.
+        </span>
         <span>Factory Direct Wholesale Paper Bags</span>
       </div>
     </footer>

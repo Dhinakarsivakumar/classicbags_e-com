@@ -1,5 +1,5 @@
-// Shared localStorage bridge between Customer Store (3001) and Admin Portal (3002)
-// Both portals run on localhost so they share localStorage.
+// Shared Data Bridge & Cloud Sync Service for Classic Bags
+// Manages local cache and syncs with Cloud/Webhook server
 
 const KEYS = {
   PRODUCTS: 'cb_products',
@@ -9,9 +9,79 @@ const KEYS = {
   WISHLIST: 'cb_wishlist',
   ADDRESSES: 'cb_addresses',
   USER_PROFILE: 'cb_user_profile',
+  ADMIN_AUTH: 'cb_admin_auth',
 };
 
+// Owner authorized phone number
+const OWNER_PHONE = '8940679198';
+
+const CLOUD_ENDPOINTS = [
+  'http://10.220.210.247:3002',
+  'http://localhost:3002'
+];
+
 export const Storage = {
+  // --- Admin Access Control ---
+  isAdminPhone: (phone) => {
+    if (!phone) return false;
+    const clean = String(phone).replace(/\D/g, '');
+    return clean.endsWith(OWNER_PHONE);
+  },
+
+  isAdminAuthenticated: () => {
+    try {
+      const auth = JSON.parse(sessionStorage.getItem(KEYS.ADMIN_AUTH));
+      return !!(auth && auth.token);
+    } catch {
+      return false;
+    }
+  },
+
+  setAdminAuthenticated: (status, details = {}) => {
+    if (status) {
+      sessionStorage.setItem(KEYS.ADMIN_AUTH, JSON.stringify({
+        token: `auth_${Date.now()}`,
+        time: new Date().toISOString(),
+        ...details
+      }));
+    } else {
+      sessionStorage.removeItem(KEYS.ADMIN_AUTH);
+    }
+    window.dispatchEvent(new CustomEvent('cb_admin_auth_changed', { detail: { authenticated: status } }));
+  },
+
+  // --- Cloud Sync ---
+  syncOrdersFromCloud: async () => {
+    for (const base of CLOUD_ENDPOINTS) {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 1500);
+        const res = await fetch(`${base}/api/orders`, { signal: controller.signal });
+        clearTimeout(timeout);
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data && Array.isArray(data.orders)) {
+            const local = Storage.getOrders() || [];
+            const merged = [...data.orders];
+            for (const loc of local) {
+              if (!merged.some(m => m.id === loc.id)) {
+                merged.push(loc);
+              }
+            }
+            localStorage.setItem(KEYS.ORDERS, JSON.stringify(merged));
+            window.dispatchEvent(new Event('storage'));
+            window.dispatchEvent(new CustomEvent('cb_store_updated', { detail: { key: KEYS.ORDERS, value: merged } }));
+            return merged;
+          }
+        }
+      } catch {
+        // endpoint unavailable, try next
+      }
+    }
+    return Storage.getOrders();
+  },
+
   // --- Products ---
   getProducts: () => {
     try { return JSON.parse(localStorage.getItem(KEYS.PRODUCTS)) || null; }
@@ -19,7 +89,7 @@ export const Storage = {
   },
   saveProducts: (products) => {
     localStorage.setItem(KEYS.PRODUCTS, JSON.stringify(products));
-    window.dispatchEvent(new Event('storage')); // notify same-tab listeners
+    window.dispatchEvent(new Event('storage'));
   },
 
   // --- Orders ---
@@ -31,6 +101,17 @@ export const Storage = {
     localStorage.setItem(KEYS.ORDERS, JSON.stringify(orders));
     window.dispatchEvent(new Event('storage'));
     window.dispatchEvent(new CustomEvent('cb_store_updated', { detail: { key: KEYS.ORDERS, value: orders } }));
+
+    // Background push to Cloud Server
+    for (const base of CLOUD_ENDPOINTS) {
+      try {
+        fetch(`${base}/api/orders`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orders })
+        }).catch(() => {});
+      } catch {}
+    }
   },
 
   // --- Webhook Logs ---

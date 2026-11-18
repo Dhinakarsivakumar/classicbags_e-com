@@ -109,7 +109,7 @@ export default function CartDrawer({ items, onClose, onUpdateQty, onRemove, getU
                     <div className="flex items-center justify-between mt-3 pt-3 border-t border-stone-200">
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => onUpdateQty(item.id, item.qty - 50)}
+                          onClick={() => onUpdateQty(item.id, item.qty - (item.qty <= 10 ? 1 : 50))}
                           className="w-8 h-8 rounded-lg bg-white border border-stone-200 flex items-center justify-center hover:bg-stone-100 transition-colors"
                         >
                           <Minus className="w-3.5 h-3.5" />
@@ -118,7 +118,7 @@ export default function CartDrawer({ items, onClose, onUpdateQty, onRemove, getU
                           {item.qty.toLocaleString('en-IN')}
                         </span>
                         <button
-                          onClick={() => onUpdateQty(item.id, item.qty + 50)}
+                          onClick={() => onUpdateQty(item.id, item.qty + (item.qty < 10 ? 1 : 50))}
                           className="w-8 h-8 rounded-lg bg-white border border-stone-200 flex items-center justify-center hover:bg-stone-100 transition-colors"
                         >
                           <Plus className="w-3.5 h-3.5" />

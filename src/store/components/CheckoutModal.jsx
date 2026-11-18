@@ -59,8 +59,20 @@ export default function CheckoutModal({
 
   if (!isOpen) return null;
 
-  // Base total
-  const baseSubtotal = cartItems.reduce((acc, item) => acc + (item.unitPrice * item.qty), 0);
+  // Base total with robust fallback
+  const getItemPrice = (item) => {
+    if (typeof item.unitPrice === 'number' && !isNaN(item.unitPrice)) return item.unitPrice;
+    if (item.tierPricing && item.tierPricing.length > 0) {
+      let price = item.tierPricing[0].price;
+      for (const tier of item.tierPricing) {
+        if (item.qty >= tier.min) price = tier.price;
+      }
+      return price;
+    }
+    return item.price || 1;
+  };
+
+  const baseSubtotal = cartItems.reduce((acc, item) => acc + (getItemPrice(item) * item.qty), 0);
   const orderAmount = baseSubtotal.toFixed(2);
   const orderId = `CB-${Math.floor(1000 + Math.random() * 9000)}`;
 

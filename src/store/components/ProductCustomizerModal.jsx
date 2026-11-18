@@ -19,7 +19,7 @@ export default function ProductCustomizerModal({ product, onClose, onAddToCart }
   const currentImage = images[activeImageIndex] || images[0];
 
   const gsmOptions = [90, 120, 150, 180];
-  const qtyPresets = [100, 500, 1000, 2500, 5000];
+  const qtyPresets = product.minOrderQty === 1 ? [1, 5, 25, 50, 100] : [100, 500, 1000, 2500, 5000];
 
   // Calculate price from tier pricing
   const unitPrice = useMemo(() => {
@@ -28,7 +28,7 @@ export default function ProductCustomizerModal({ product, onClose, onAddToCart }
       if (qty >= tier.min) price = tier.price;
     }
     const gsmDiff = selectedGsm - product.gsm;
-    const gsmAdjustment = gsmDiff * 0.01;
+    const gsmAdjustment = product.minOrderQty === 1 ? 0 : gsmDiff * 0.01;
     return Math.max(price + gsmAdjustment, 1);
   }, [qty, selectedGsm, product]);
 
@@ -62,6 +62,8 @@ export default function ProductCustomizerModal({ product, onClose, onAddToCart }
       handle: selectedHandle,
       qty,
       tierPricing: product.tierPricing,
+      unitPrice,
+      price: unitPrice,
       logoFile,
       logoPreview,
       printNotes,
@@ -267,7 +269,10 @@ export default function ProductCustomizerModal({ product, onClose, onAddToCart }
                 <div className="flex items-center gap-3">
                   <div className="flex items-center border border-stone-200 rounded-xl overflow-hidden bg-stone-50">
                     <button
-                      onClick={() => setQty(prev => Math.max(product.minOrderQty, prev - 50))}
+                      onClick={() => setQty(prev => {
+                        const step = prev <= 10 ? 1 : 50;
+                        return Math.max(product.minOrderQty, prev - step);
+                      })}
                       className="px-3 py-2 hover:bg-stone-100 text-stone-600 font-bold"
                     >
                       <Minus size={14} />
@@ -279,7 +284,10 @@ export default function ProductCustomizerModal({ product, onClose, onAddToCart }
                       className="w-20 text-center font-bold text-stone-800 bg-transparent text-sm focus:outline-none"
                     />
                     <button
-                      onClick={() => setQty(prev => prev + 50)}
+                      onClick={() => setQty(prev => {
+                        const step = prev < 10 ? 1 : 50;
+                        return prev + step;
+                      })}
                       className="px-3 py-2 hover:bg-stone-100 text-stone-600 font-bold"
                     >
                       <Plus size={14} />

@@ -36,7 +36,27 @@ export default function App() {
   // Load products, wishlist, and orders from storage on mount
   useEffect(() => {
     const stored = Storage.getProducts();
-    setProducts(stored && stored.length > 0 ? stored : INITIAL_PRODUCTS);
+    if (stored && stored.length > 0) {
+      // Ensure cb-001 is updated with the ₹1 test pricing
+      const synced = stored.map(p => p.id === 'cb-001' ? {
+        ...p,
+        pricePerUnit: 1.00,
+        minOrderQty: 1,
+        name: 'Brown Kraft Shopper Bag',
+        tamilName: 'பிரவுன் கிராஃப்ட் ஷாப்பர் பேக் (₹1 Test Bag)',
+        tierPricing: [
+          { min: 1, price: 1.00 },
+          { min: 100, price: 1.00 },
+          { min: 500, price: 1.00 },
+          { min: 2000, price: 1.00 }
+        ]
+      } : p);
+      Storage.saveProducts(synced);
+      setProducts(synced);
+    } else {
+      Storage.saveProducts(INITIAL_PRODUCTS);
+      setProducts(INITIAL_PRODUCTS);
+    }
     setWishlist(Storage.getWishlist() || []);
     setOrders(Storage.getOrders() || []);
   }, []);

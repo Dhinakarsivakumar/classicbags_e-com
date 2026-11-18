@@ -1,8 +1,8 @@
 import React from 'react';
-import { ArrowRight, MessageCircle, Sparkles } from 'lucide-react';
+import { ArrowRight, MessageCircle, Sparkles, SlidersHorizontal, ShieldCheck } from 'lucide-react';
 import { STORE_SETTINGS } from '../../shared/data/initialData';
 
-export default function Hero({ products }) {
+export default function Hero({ products, onCustomizeClick }) {
   const featuredProduct = products.find(p => p.featured) || products[0];
 
   return (
@@ -34,8 +34,8 @@ export default function Hero({ products }) {
             </h1>
 
             {/* Tamil text */}
-            <p className="text-lg sm:text-xl text-[#7e5222]/70 font-medium mb-4">
-              கிளாசிக் பேப்பர் பேக்ஸ்
+            <p className="text-lg sm:text-xl text-[#7e5222]/80 font-medium mb-4">
+              கிளாசிக் பேப்பர் பேக்ஸ் - தஞ்சாவூர்
             </p>
 
             {/* Description */}
@@ -54,16 +54,19 @@ export default function Hero({ products }) {
                 Browse Catalog
                 <ArrowRight className="w-4 h-4" />
               </a>
-              <a
-                href="#catalog"
-                onClick={(e) => {
-                  e.preventDefault();
-                  document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' });
+              <button
+                onClick={() => {
+                  if (onCustomizeClick) {
+                    onCustomizeClick();
+                  } else {
+                    document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' });
+                  }
                 }}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-white hover:bg-stone-50 text-[#7e5222] border border-[#7e5222]/30 rounded-full font-semibold transition-all duration-200"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-white hover:bg-stone-50 text-[#7e5222] border border-[#7e5222]/30 rounded-full font-semibold transition-all duration-200 shadow-sm active:scale-95"
               >
-                🎨 Custom Logo Printing
-              </a>
+                <SlidersHorizontal className="w-4 h-4" />
+                🎨 Custom Logo Printing (வடிவமைக்க)
+              </button>
               <a
                 href={`https://wa.me/${STORE_SETTINGS.whatsapp}?text=Hi%20Classic%20Bags!%20I'd%20like%20to%20place%20a%20wholesale%20order.`}
                 target="_blank"
@@ -84,53 +87,57 @@ export default function Hero({ products }) {
                 📏 80–180 GSM Range
               </span>
               <span className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-50 text-blue-700 rounded-full text-sm font-medium border border-blue-200">
-                🚚 Fast Delivery
+                🚚 Fast Delivery Thanjavur
               </span>
             </div>
           </div>
 
-          {/* Right: Featured Product Preview */}
-          {featuredProduct && (
-            <div className="relative animate-slideInUp hidden lg:block">
-              <div className="relative bg-white rounded-3xl shadow-2xl shadow-stone-900/10 overflow-hidden border border-stone-100 max-w-sm ml-auto">
-                {/* Product Image 4:5 */}
-                <div className="aspect-[4/5] relative overflow-hidden">
+          {/* Right Hero Visual Card */}
+          <div className="relative">
+            <div className="relative mx-auto max-w-md lg:max-w-none">
+              <div className="relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white bg-white">
+                <div className="aspect-[4/3] overflow-hidden">
                   <img
-                    src={featuredProduct.images[0]}
-                    alt={featuredProduct.name}
+                    src={featuredProduct?.images?.[0] || 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=800&q=80'}
+                    alt="Featured Paper Bag"
                     className="w-full h-full object-cover"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
-
-                  {/* Floating price pill */}
-                  <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-2xl px-4 py-2 shadow-lg">
-                    <p className="text-xs text-stone-500 font-medium">Starting from</p>
-                    <p className="text-2xl font-bold text-[#7e5222]">
-                      ₹{featuredProduct.tierPricing[featuredProduct.tierPricing.length - 1].price.toFixed(2)}
-                      <span className="text-xs text-stone-400 font-normal">/bag</span>
-                    </p>
-                  </div>
-
-                  {/* Featured badge */}
-                  <div className="absolute top-4 right-4 bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow">
-                    BESTSELLER
-                  </div>
                 </div>
-
-                {/* Product Info */}
-                <div className="p-5">
-                  <h3 className="font-bold text-stone-800 text-lg">{featuredProduct.name}</h3>
-                  <p className="text-sm text-stone-500 mt-1">
-                    {featuredProduct.gsm} GSM • Min. {featuredProduct.minOrderQty} pcs
-                  </p>
+                <div className="p-6 bg-gradient-to-t from-stone-900 via-stone-900/90 to-transparent absolute inset-0 flex flex-col justify-end text-white">
+                  <div className="inline-block bg-amber-500 text-stone-900 text-xs font-bold px-3 py-1 rounded-full mb-2 self-start">
+                    ★ Wholesale Top Seller
+                  </div>
+                  <h3 className="text-xl font-bold">{featuredProduct?.name}</h3>
+                  <p className="text-xs text-amber-200 font-medium mb-3">{featuredProduct?.tamilName}</p>
+                  <div className="flex items-center justify-between pt-2 border-t border-white/20">
+                    <div>
+                      <span className="text-xs text-stone-300">Wholesale from</span>
+                      <p className="text-2xl font-extrabold text-amber-400">
+                        ₹{featuredProduct?.pricePerUnit?.toFixed(2)} <span className="text-xs text-white font-normal">/ unit</span>
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => onCustomizeClick ? onCustomizeClick() : null}
+                      className="px-4 py-2 bg-white text-[#7e5222] rounded-xl text-xs font-bold hover:bg-amber-50 transition-colors shadow"
+                    >
+                      Customize Now ➔
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              {/* Decorative floating elements */}
-              <div className="absolute -top-4 -left-4 w-20 h-20 bg-amber-200/50 rounded-2xl -rotate-12 -z-10" />
-              <div className="absolute -bottom-4 -right-4 w-16 h-16 bg-orange-200/50 rounded-full -z-10" />
+              {/* Float pill */}
+              <div className="absolute -bottom-6 -left-6 bg-white p-4 rounded-2xl shadow-xl border border-stone-100 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-green-100 text-green-700 flex items-center justify-center font-bold">
+                  ✓
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-stone-800">Direct From Factory</p>
+                  <p className="text-[11px] text-stone-500">No middlemen commission</p>
+                </div>
+              </div>
             </div>
-          )}
+          </div>
         </div>
       </div>
     </section>

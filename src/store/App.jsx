@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { INITIAL_PRODUCTS, CATEGORIES, STORE_SETTINGS } from '../shared/data/initialData';
 import { Storage } from '../shared/services/storage';
 import Navbar from './components/Navbar';
@@ -7,28 +7,46 @@ import ProductCard from './components/ProductCard';
 import ProductCustomizerModal from './components/ProductCustomizerModal';
 import CartDrawer from './components/CartDrawer';
 import CheckoutModal from './components/CheckoutModal';
+import CustomerSettingsModal from './components/CustomerSettingsModal';
+import WishlistDrawer from './components/WishlistDrawer';
 import Footer from './components/Footer';
+import { Search, SlidersHorizontal, ArrowUpDown, Sparkles, CheckCircle2 } from 'lucide-react';
 
 export default function App() {
   const [products, setProducts] = useState([]);
   const [cartItems, setCartItems] = useState([]);
+  const [wishlist, setWishlist] = useState([]);
+  const [orders, setOrders] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [isWishlistOpen, setIsWishlistOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [settingsTab, setSettingsTab] = useState('orders');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState('featured');
+  const [toast, setToast] = useState('');
 
-  // Load products from storage on mount
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(''), 3000);
+  };
+
+  // Load products, wishlist, and orders from storage on mount
   useEffect(() => {
     const stored = Storage.getProducts();
     setProducts(stored && stored.length > 0 ? stored : INITIAL_PRODUCTS);
+    setWishlist(Storage.getWishlist() || []);
+    setOrders(Storage.getOrders() || []);
   }, []);
 
-  // Listen for cross-tab storage changes (admin updates stock)
+  // Listen for cross-tab storage changes (admin updates stock or order status)
   useEffect(() => {
     const cleanup = Storage.onStorageChange((key, newValue) => {
-      if (key === 'cb_products' && newValue) {
-        setProducts(newValue);
-      }
+      if (key === 'cb_products' && newValue) setProducts(newValue);
+      if (key === 'cb_orders' && newValue) setOrders(newValue);
+      if (key === 'cb_wishlist' && newValue) setWishlist(newValue);
     });
     return cleanup;
   }, []);
@@ -73,11 +91,13 @@ export default function App() {
         handle: product.handles[0],
         qty: product.minOrderQty,
         tierPricing: product.tierPricing,
+        unitPrice: product.pricePerUnit,
         logoFile: null,
         logoPreview: null,
         printNotes: '',
       }];
     });
+    showToast(`Added ${product.minOrderQty} pcs of ${product.name} to Cart!`);
     setIsCartOpen(true);
   }, []);
 
@@ -88,7 +108,47 @@ export default function App() {
       ...customItem,
     }]);
     setSelectedProduct(null);
+    showToast(`Custom bag configuration added to Cart!`);
     setIsCartOpen(true);
+  }, []);
+
+  // Toggle Wishlist
+  const handleToggleWishlist = useCallback((product) => {
+    setWishlist(prev => {
+      const exists = prev.some(item => item.id === product.id);
+      let updated;
+      if (exists) {
+        updated = prev.filter(item => item.id !== product.id);
+        showToast(`விருப்பப்பட்டியலில் இருந்து நீக்கப்பட்டது.`);
+      } else {
+        updated = [...prev, product];
+        showToast(`❤️ விருப்பப்பட்டியலில் சேர்க்கப்பட்டது (Wishlist Added)!`);
+      }
+      Storage.saveWishlist(updated);
+      return updated;
+    });
+  }, []);
+
+  // Remove from Wishlist
+  const handleRemoveFromWishlist = useCallback((productId) => {
+    setWishlist(prev => {
+      const updated = prev.filter(item => item.id !== productId);
+      Storage.saveWishlist(updated);
+      return updated;
+    });
+  }, []);
+
+  // Move from Wishlist to Cart
+  const handleMoveToCart = useCallback((product) => {
+    handleQuickAdd(product);
+    handleRemoveFromWishlist(product.id);
+  }, [handleQuickAdd, handleRemoveFromWishlist]);
+
+  // Clear Wishlist
+  const handleClearWishlist = useCallback(() => {
+    setWishlist([]);
+    Storage.saveWishlist([]);
+    showToast('விருப்பப்பட்டியல் காலியாக்கப்பட்டது.');
   }, []);
 
   // Update cart qty
@@ -131,99 +191,194 @@ export default function App() {
     setIsCheckoutOpen(true);
   }, []);
 
-  // Place order
-  const handlePlaceOrder = useCallback((orderDetails) => {
-    const orderId = `CB-${Date.now().toString(36).toUpperCase()}`;
-    const paise = Math.floor(Math.random() * 89) + 11; // 11-99
-    const totalWithPaise = Math.floor(cartSubtotal) + paise / 100;
-
-    const order = {
-      id: orderId,
-      items: cartItems.map(item => ({
-        ...item,
-        unitPrice: getUnitPrice(item.tierPricing, item.qty),
-        lineTotal: getUnitPrice(item.tierPricing, item.qty) * item.qty,
-      })),
-      subtotal: cartSubtotal,
-      total: totalWithPaise,
-      paise,
-      customer: orderDetails,
-      status: 'PENDING_PAYMENT',
-      createdAt: new Date().toISOString(),
-    };
-
-    // Save to storage for admin portal
-    const existingOrders = Storage.getOrders() || [];
-    Storage.saveOrders([...existingOrders, order]);
-
-    return order;
-  }, [cartItems, cartSubtotal, getUnitPrice]);
-
   // Clear cart after successful order
-  const handleOrderSuccess = useCallback(() => {
+  const handleOrderSuccess = useCallback((order) => {
     setCartItems([]);
     setIsCheckoutOpen(false);
+    setOrders(Storage.getOrders() || []);
+    showToast(`🎉 Order Placed Successfully! (Ref: ${order?.id || 'CB-ORDER'})`);
+    // Open settings order tab
+    setSettingsTab('orders');
+    setIsSettingsOpen(true);
   }, []);
 
-  // Filter products by category
-  const filteredProducts = selectedCategory === 'all'
-    ? products
-    : products.filter(p => p.category === selectedCategory);
+  // Filter and sort products
+  const filteredProducts = useMemo(() => {
+    let result = products;
+
+    // Filter by Category
+    if (selectedCategory !== 'all') {
+      result = result.filter(p => p.category === selectedCategory);
+    }
+
+    // Filter by Search Query (Name, Tamil name, GSM, Size, Material)
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      result = result.filter(p => 
+        p.name.toLowerCase().includes(q) ||
+        (p.tamilName && p.tamilName.includes(q)) ||
+        (p.description && p.description.toLowerCase().includes(q)) ||
+        `${p.gsm} gsm`.includes(q)
+      );
+    }
+
+    // Sort By
+    if (sortBy === 'price-low') {
+      result = [...result].sort((a, b) => a.pricePerUnit - b.pricePerUnit);
+    } else if (sortBy === 'price-high') {
+      result = [...result].sort((a, b) => b.pricePerUnit - a.pricePerUnit);
+    } else if (sortBy === 'rating') {
+      result = [...result].sort((a, b) => b.rating - a.rating);
+    }
+
+    return result;
+  }, [products, selectedCategory, searchQuery, sortBy]);
+
+  // Open customizer directly for logo customization
+  const handleOpenCustomLogo = useCallback(() => {
+    const customProduct = products.find(p => p.category === 'custom') || products[0];
+    if (customProduct) {
+      setSelectedProduct(customProduct);
+    }
+  }, [products]);
 
   return (
-    <div className="min-h-screen bg-[#fbf7ee]">
+    <div className="min-h-screen bg-[#fbf7ee] text-stone-900 selection:bg-amber-200">
+      {/* Toast Alert */}
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-50 bg-[#674221] text-amber-50 px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-2 border border-amber-500/40 animate-slideUp">
+          <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />
+          <span className="text-xs font-semibold">{toast}</span>
+        </div>
+      )}
+
+      {/* Navbar with Cart, Wishlist, and Settings buttons */}
       <Navbar
         cartItemCount={cartItemCount}
         onCartOpen={() => setIsCartOpen(true)}
+        wishlistCount={wishlist.length}
+        onWishlistOpen={() => setIsWishlistOpen(true)}
+        orderCount={orders.length}
+        onSettingsOpen={() => {
+          setSettingsTab('orders');
+          setIsSettingsOpen(true);
+        }}
       />
 
-      <Hero products={products} />
+      {/* Hero Section */}
+      <Hero 
+        products={products} 
+        onCustomizeClick={handleOpenCustomLogo} 
+      />
 
-      {/* Category Filter Pills */}
+      {/* Catalog Search & Filter Controls */}
       <section id="catalog" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-6">
-        <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-none">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#3d2510] tracking-tight">
+              பேப்பர் பேக் வகைகள் (Wholesale Catalog)
+            </h2>
+            <p className="text-xs sm:text-sm text-stone-500 mt-1">
+              உயர்தர பேப்பர் பேக்குகள் • குறைந்தபட்ச ஆர்டர் முதல் மொத்த விற்பனை வரை
+            </p>
+          </div>
+
+          {/* Search & Sort Bar */}
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            {/* Live Search */}
+            <div className="relative flex-1 md:w-64">
+              <Search className="w-4 h-4 text-stone-400 absolute left-3 top-3" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Search bags / பைகள் தேட..."
+                className="w-full text-xs pl-9 pr-3 py-2.5 rounded-full border border-stone-200 bg-white focus:outline-none focus:ring-2 focus:ring-[#7e5222] shadow-sm"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-2.5 text-stone-400 hover:text-stone-600 text-xs"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {/* Sort Dropdown */}
+            <div className="relative">
+              <select
+                value={sortBy}
+                onChange={e => setSortBy(e.target.value)}
+                className="text-xs py-2.5 pl-3 pr-7 rounded-full border border-stone-200 bg-white text-stone-700 font-medium focus:outline-none focus:ring-2 focus:ring-[#7e5222] shadow-sm appearance-none cursor-pointer"
+              >
+                <option value="featured">Featured (பிரபலமானவை)</option>
+                <option value="price-low">விலை: குறைவு முதல் அதிகம்</option>
+                <option value="price-high">விலை: அதிகம் முதல் குறைவு</option>
+                <option value="rating">சிறந்த ரேட்டிங் (Top Rated)</option>
+              </select>
+              <ArrowUpDown className="w-3.5 h-3.5 text-stone-400 absolute right-2.5 top-3 pointer-events-none" />
+            </div>
+          </div>
+        </div>
+
+        {/* Category Filter Pills */}
+        <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto pb-2 scrollbar-none">
           <button
             onClick={() => setSelectedCategory('all')}
-            className={`flex-shrink-0 px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 ${
+            className={`flex-shrink-0 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 ${
               selectedCategory === 'all'
-                ? 'bg-[#7e5222] text-white shadow-lg shadow-amber-900/20'
+                ? 'bg-[#7e5222] text-white shadow-md shadow-amber-900/20'
                 : 'bg-white text-stone-600 hover:bg-stone-100 border border-stone-200'
             }`}
           >
-            All Products
+            All Products ({products.length})
           </button>
-          {CATEGORIES.map(cat => (
-            <button
-              key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
-              className={`flex-shrink-0 px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 flex items-center gap-2 ${
-                selectedCategory === cat.id
-                  ? 'bg-[#7e5222] text-white shadow-lg shadow-amber-900/20'
-                  : 'bg-white text-stone-600 hover:bg-stone-100 border border-stone-200'
-              }`}
-            >
-              <span>{cat.icon}</span>
-              {cat.label}
-            </button>
-          ))}
+          {CATEGORIES.map(cat => {
+            const count = products.filter(p => p.category === cat.id).length;
+            return (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`flex-shrink-0 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center gap-1.5 ${
+                  selectedCategory === cat.id
+                    ? 'bg-[#7e5222] text-white shadow-md shadow-amber-900/20'
+                    : 'bg-white text-stone-600 hover:bg-stone-100 border border-stone-200'
+                }`}
+              >
+                <span>{cat.icon}</span>
+                <span>{cat.label}</span>
+                <span className="text-[10px] opacity-75">({count})</span>
+              </button>
+            );
+          })}
         </div>
       </section>
 
       {/* Product Grid */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 stagger-children">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredProducts.map(product => (
             <ProductCard
               key={product.id}
               product={product}
+              isWishlisted={wishlist.some(w => w.id === product.id)}
+              onToggleWishlist={handleToggleWishlist}
               onSelect={() => setSelectedProduct(product)}
               onQuickAdd={() => handleQuickAdd(product)}
             />
           ))}
         </div>
         {filteredProducts.length === 0 && (
-          <div className="text-center py-20 text-stone-400">
-            <p className="text-lg">No products in this category yet.</p>
+          <div className="text-center py-20 bg-white rounded-3xl border border-stone-200 p-8">
+            <p className="text-base font-bold text-stone-700">பொருட்கள் எதுவும் கிடைக்கவில்லை</p>
+            <p className="text-xs text-stone-500 mt-1">வேறு வார்த்தைகளில் தேடவும் அல்லது வடிகட்டியை மாற்றவும்.</p>
+            <button
+              onClick={() => { setSelectedCategory('all'); setSearchQuery(''); }}
+              className="mt-4 px-5 py-2 bg-[#7e5222] text-white text-xs font-bold rounded-full hover:bg-[#674221]"
+            >
+              அனைத்தையும் காட்டு (Reset Filters)
+            </button>
           </div>
         )}
       </section>
@@ -232,11 +387,11 @@ export default function App() {
       <section className="bg-gradient-to-r from-[#674221] via-[#7e5222] to-[#674221] py-16 px-4">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3">
-            🎨 Need Custom Logo Printing?
+            🎨 Need Custom Logo Printing? (லோகோ அச்சிட வேண்டுமா?)
           </h2>
-          <p className="text-amber-100 mb-8 max-w-2xl mx-auto">
+          <p className="text-amber-100 mb-8 max-w-2xl mx-auto text-xs sm:text-sm">
             We offer multi-color screen printing and hot-foil stamping on all bag types.
-            Upload your artwork and get instant pricing. Minimum order: 500 pieces.
+            Upload your artwork, preview on bag mockup, and get instant pricing. Minimum order: 500 pieces.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
@@ -252,13 +407,10 @@ export default function App() {
               WhatsApp Us
             </a>
             <button
-              onClick={() => {
-                const customProduct = products.find(p => p.category === 'custom');
-                if (customProduct) setSelectedProduct(customProduct);
-              }}
+              onClick={handleOpenCustomLogo}
               className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-white/10 hover:bg-white/20 text-white border border-white/30 rounded-full font-semibold transition-all"
             >
-              Upload Logo & Order Now
+              Upload Logo & Preview Now (லோகோ பதிவேற்றம்)
             </button>
           </div>
         </div>
@@ -266,7 +418,9 @@ export default function App() {
 
       <Footer />
 
-      {/* Modals */}
+      {/* MODALS & DRAWERS */}
+
+      {/* 1. Product Customizer Modal */}
       {selectedProduct && (
         <ProductCustomizerModal
           product={selectedProduct}
@@ -275,6 +429,7 @@ export default function App() {
         />
       )}
 
+      {/* 2. Cart Drawer */}
       {isCartOpen && (
         <CartDrawer
           items={cartItems}
@@ -287,6 +442,28 @@ export default function App() {
         />
       )}
 
+      {/* 3. Wishlist Drawer */}
+      {isWishlistOpen && (
+        <WishlistDrawer
+          isOpen={isWishlistOpen}
+          onClose={() => setIsWishlistOpen(false)}
+          wishlistItems={wishlist}
+          onRemoveFromWishlist={handleRemoveFromWishlist}
+          onMoveToCart={handleMoveToCart}
+          onClearWishlist={handleClearWishlist}
+        />
+      )}
+
+      {/* 4. Customer Settings & Orders Modal */}
+      {isSettingsOpen && (
+        <CustomerSettingsModal
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+          activeTab={settingsTab}
+        />
+      )}
+
+      {/* 5. Checkout Modal */}
       {isCheckoutOpen && (
         <CheckoutModal
           isOpen={true}

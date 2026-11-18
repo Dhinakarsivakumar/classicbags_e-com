@@ -1,7 +1,13 @@
 import React, { useState } from 'react';
-import { Star, ShoppingCart, SlidersHorizontal, Image as ImageIcon } from 'lucide-react';
+import { Star, ShoppingCart, SlidersHorizontal, Image as ImageIcon, Heart } from 'lucide-react';
 
-export default function ProductCard({ product, onSelect, onQuickAdd }) {
+export default function ProductCard({ 
+  product, 
+  onSelect, 
+  onQuickAdd, 
+  isWishlisted = false, 
+  onToggleWishlist 
+}) {
   const { name, tamilName, images, category, gsm, rating, reviews, tierPricing, minOrderQty, featured, stockUnits, sizes } = product;
 
   const [hoverIndex, setHoverIndex] = useState(0);
@@ -46,30 +52,32 @@ export default function ProductCard({ product, onSelect, onQuickAdd }) {
           {categoryLabels[category] || category}
         </span>
 
-        {/* Multiple Photos indicator badge */}
-        {images && images.length > 1 && (
-          <span className="absolute top-3 right-3 bg-black/60 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow flex items-center gap-1">
-            <ImageIcon size={10} />
-            <span>{images.length} Photos</span>
-          </span>
-        )}
+        {/* Wishlist Heart Button */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleWishlist?.(product);
+          }}
+          className={`absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all shadow-md active:scale-90 ${
+            isWishlisted
+              ? 'bg-white text-rose-500'
+              : 'bg-white/80 hover:bg-white text-stone-600 hover:text-rose-500'
+          }`}
+          title={isWishlisted ? 'விருப்பப்பட்டியலில் இருந்து நீக்கு' : 'விருப்பப்பட்டியலில் சேர்'}
+        >
+          <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-rose-500 text-rose-500' : ''}`} />
+        </button>
 
         {/* GSM badge */}
         <span className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-sm text-white text-[11px] font-medium px-2 py-1 rounded-lg">
           {gsm} GSM
         </span>
 
-        {/* Photos dots */}
+        {/* Photos dots & count */}
         {images && images.length > 1 && (
-          <div className="absolute bottom-3 right-3 flex items-center gap-1">
-            {images.map((_, i) => (
-              <span
-                key={i}
-                className={`w-1.5 h-1.5 rounded-full transition-all ${
-                  hoverIndex === i ? 'bg-amber-400 w-3' : 'bg-white/60'
-                }`}
-              />
-            ))}
+          <div className="absolute bottom-3 right-3 flex items-center gap-1.5 bg-black/50 backdrop-blur-sm px-2 py-0.5 rounded-full">
+            <ImageIcon size={10} className="text-white/80" />
+            <span className="text-[10px] text-white/90 font-medium">{images.length}</span>
           </div>
         )}
       </div>
@@ -114,14 +122,14 @@ export default function ProductCard({ product, onSelect, onQuickAdd }) {
         <div className="mt-4 pt-3 border-t border-stone-100 flex items-center gap-2">
           <button
             onClick={() => onSelect(product)}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold rounded-xl transition-colors"
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 bg-amber-50 hover:bg-amber-100 text-[#7e5222] text-xs font-bold rounded-xl transition-colors border border-amber-200/60"
           >
-            <SlidersHorizontal size={13} className="text-[#7e5222]" />
-            <span>Customize</span>
+            <SlidersHorizontal size={13} />
+            <span>Customize (வடிவமை)</span>
           </button>
           <button
             onClick={() => onQuickAdd(product)}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 bg-[#7e5222] hover:bg-[#674221] text-white text-xs font-bold rounded-xl shadow-sm transition-all"
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 bg-[#7e5222] hover:bg-[#674221] text-white text-xs font-bold rounded-xl shadow-sm transition-all active:scale-95"
           >
             <ShoppingCart size={13} />
             <span>Add Min ({minOrderQty})</span>

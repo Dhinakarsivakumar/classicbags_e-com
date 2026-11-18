@@ -6,14 +6,46 @@ import { WebhookEngine } from '../../shared/services/webhookEngine';
 
 export default function CheckoutModal({ isOpen = true, onClose, cartItems = [], onOrderCompleted, onOrderSuccess }) {
   const [customerName, setCustomerName] = useState('');
-  const [phone, setPhone] = useState('');
+  const [phone, setPhone] = useState('8940679198');
   const [city, setCity] = useState('Thanjavur');
   const [address, setAddress] = useState('');
+  const [savedAddresses, setSavedAddresses] = useState([]);
+  const [selectedAddressId, setSelectedAddressId] = useState('');
   const [step, setStep] = useState('details'); // 'details' | 'payment' | 'success'
   const [createdOrder, setCreatedOrder] = useState(null);
   const [copied, setCopied] = useState(false);
   const [utrInput, setUtrInput] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
+
+  useEffect(() => {
+    const profile = Storage.getUserProfile();
+    if (profile) {
+      if (profile.name) setCustomerName(profile.name);
+      if (profile.phone) setPhone(profile.phone);
+    }
+
+    const addresses = Storage.getAddresses() || [];
+    setSavedAddresses(addresses);
+    const def = addresses.find(a => a.isDefault) || addresses[0];
+    if (def) {
+      setSelectedAddressId(def.id);
+      setAddress(`${def.street}${def.area ? `, ${def.area}` : ''}`);
+      setCity(def.city || 'Thanjavur');
+      if (def.fullName && !customerName) setCustomerName(def.fullName);
+      if (def.phone && !phone) setPhone(def.phone);
+    }
+  }, [isOpen]);
+
+  const handleSelectSavedAddress = (addrId) => {
+    setSelectedAddressId(addrId);
+    const chosen = savedAddresses.find(a => a.id === addrId);
+    if (chosen) {
+      setAddress(`${chosen.street}${chosen.area ? `, ${chosen.area}` : ''}`);
+      setCity(chosen.city);
+      if (chosen.fullName) setCustomerName(chosen.fullName);
+      if (chosen.phone) setPhone(chosen.phone);
+    }
+  };
 
   const handleFinishSuccess = (order) => {
     if (onOrderCompleted) onOrderCompleted(order);
@@ -177,8 +209,32 @@ export default function CheckoutModal({ isOpen = true, onClose, cartItems = [], 
               </div>
             </div>
 
+            {savedAddresses.length > 0 && (
+              <div>
+                <label className="block text-xs font-bold text-stone-700 mb-1">
+                  Saved Delivery Address (சேமிக்கப்பட்ட முகவரி)
+                </label>
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {savedAddresses.map(addr => (
+                    <button
+                      key={addr.id}
+                      type="button"
+                      onClick={() => handleSelectSavedAddress(addr.id)}
+                      className={`text-xs px-3 py-1.5 rounded-lg border font-medium flex-shrink-0 transition-all ${
+                        selectedAddressId === addr.id
+                          ? 'border-[#7e5222] bg-amber-50 text-[#7e5222] font-bold'
+                          : 'border-stone-200 bg-white text-stone-600 hover:border-stone-300'
+                      }`}
+                    >
+                      📍 {addr.title} ({addr.city})
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div>
-              <label className="block text-xs font-bold text-stone-700 mb-1">Delivery Address</label>
+              <label className="block text-xs font-bold text-stone-700 mb-1">Delivery Address *</label>
               <textarea
                 rows={2}
                 placeholder="Shop address, Street, Landmark"

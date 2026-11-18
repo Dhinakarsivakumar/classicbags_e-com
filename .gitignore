@@ -9,9 +9,6 @@ dist/
 .DS_Store
 Thumbs.db
 
-# Admin Portal & Android Listener (Separated into dedicated repository)
+# Standalone Admin Portal & Android Listener
 admin-portal/
-admin.html
-vite.admin.config.js
-src/admin/
 android-service/

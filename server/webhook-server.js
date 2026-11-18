@@ -235,6 +235,88 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // 8. Direct Image Upload API: POST /api/upload
+  if (url.pathname === '/api/upload' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const { filename, data } = JSON.parse(body || '{}');
+        if (!data) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, message: 'No image data provided' }));
+          return;
+        }
+
+        const matches = data.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+        let ext = 'jpg';
+        let buffer;
+
+        if (matches && matches.length === 3) {
+          const mime = matches[1];
+          if (mime.includes('png')) ext = 'png';
+          else if (mime.includes('webp')) ext = 'webp';
+          buffer = Buffer.from(matches[2], 'base64');
+        } else {
+          buffer = Buffer.from(data, 'base64');
+        }
+
+        const safeName = (filename || 'image').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 30);
+        const uniqueFilename = `img_${Date.now()}_${safeName}.${ext}`;
+        const uploadsDir = path.join(__dirname, '..', 'public', 'uploads');
+        if (!fs.existsSync(uploadsDir)) {
+          fs.mkdirSync(uploadsDir, { recursive: true });
+        }
+
+        const filePath = path.join(uploadsDir, uniqueFilename);
+        fs.writeFileSync(filePath, buffer);
+
+        const fileUrl = `/uploads/${uniqueFilename}`;
+        console.log(`📸 [IMAGE UPLOADED] ${uniqueFilename} (${Math.round(buffer.length / 1024)} KB)`);
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          success: true,
+          url: fileUrl,
+          filename: uniqueFilename,
+          size: buffer.length
+        }));
+      } catch (err) {
+        console.error('Upload failed:', err.message);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: err.message }));
+      }
+    });
+    return;
+  }
+
+  // 9. Static File Serving for Uploaded Images: GET /uploads/*
+  if (url.pathname.startsWith('/uploads/') && req.method === 'GET') {
+    const filename = path.basename(url.pathname);
+    const filePath = path.join(__dirname, '..', 'public', 'uploads', filename);
+
+    if (fs.existsSync(filePath)) {
+      const ext = path.extname(filePath).toLowerCase();
+      const contentTypes = {
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.png': 'image/png',
+        '.webp': 'image/webp',
+        '.gif': 'image/gif'
+      };
+      res.writeHead(200, {
+        'Content-Type': contentTypes[ext] || 'application/octet-stream',
+        'Cache-Control': 'public, max-age=31536000'
+      });
+      fs.createReadStream(filePath).pipe(res);
+      return;
+    } else {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Image file not found' }));
+      return;
+    }
+  }
+
   // 404
   res.writeHead(404, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ error: 'Endpoint not found' }));

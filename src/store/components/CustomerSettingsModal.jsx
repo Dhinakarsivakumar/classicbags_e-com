@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   X, Package, MapPin, User, CheckCircle2, Clock, Truck, 
   Plus, Trash2, Phone, Building2, Save, Copy, ExternalLink,
-  ChevronRight, Sparkles, ShieldCheck, ShoppingBag
+  ChevronRight, Sparkles, ShieldCheck, ShoppingBag, AlertCircle
 } from 'lucide-react';
 import { Storage } from '../../shared/services/storage';
 import { STORE_SETTINGS } from '../../shared/data/initialData';
@@ -403,6 +403,41 @@ export default function CustomerSettingsModal({
                               ₹{(order.totalAmount || order.total || order.amount || 0).toFixed(2)}
                             </span>
                           </div>
+                        </div>
+
+                        {/* Live Payment Verification Status Indicator */}
+                        <div className="mt-2.5">
+                          {(order.approvalType === 'AUTOMATIC_SMS_WEBHOOK' || order.paymentVerification === 'AUTO_VERIFIED') ? (
+                            <div className="flex items-center gap-1.5 text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200 text-[11px] font-medium">
+                              <ShieldCheck className="w-4 h-4 text-emerald-700 flex-shrink-0" />
+                              <span><strong>Payment Verification:</strong> ⚡ 100% Auto-Verified via Bank SMS ✔</span>
+                            </div>
+                          ) : order.paymentVerification === 'MANUAL_VERIFIED' ? (
+                            <div className="flex items-center gap-1.5 text-blue-800 bg-blue-50 px-3 py-1.5 rounded-xl border border-blue-200 text-[11px] font-medium">
+                              <CheckCircle2 className="w-4 h-4 text-blue-700 flex-shrink-0" />
+                              <span><strong>Payment Verification:</strong> ✔ Manually Verified &amp; Approved by Admin</span>
+                            </div>
+                          ) : (order.status === 'PENDING_VERIFICATION' || order.paymentVerification === 'PENDING_VERIFICATION') ? (
+                            <div className="flex items-center gap-1.5 text-amber-900 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-300 text-[11px] font-medium">
+                              <Clock className="w-4 h-4 text-amber-700 flex-shrink-0" />
+                              <span><strong>Payment Verification:</strong> ⏳ 12-Digit UTR Submitted ({order.utr || 'Pending'}) • Admin Verifying against Bank Records</span>
+                            </div>
+                          ) : order.paymentVerification === 'REJECTED' ? (
+                            <div className="flex items-center gap-1.5 text-rose-800 bg-rose-50 px-3 py-1.5 rounded-xl border border-rose-300 text-[11px] font-medium">
+                              <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                              <span><strong>Payment Verification:</strong> ❌ UTR Not Verified / Statement Mismatch • Contact Store on WhatsApp</span>
+                            </div>
+                          ) : isPaid ? (
+                            <div className="flex items-center gap-1.5 text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200 text-[11px] font-medium">
+                              <CheckCircle2 className="w-4 h-4 text-emerald-700 flex-shrink-0" />
+                              <span><strong>Payment Verification:</strong> ✔ Confirmed &amp; In Production</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1.5 text-stone-700 bg-stone-50 px-3 py-1.5 rounded-xl border border-stone-200 text-[11px] font-medium">
+                              <AlertCircle className="w-4 h-4 text-stone-500 flex-shrink-0" />
+                              <span><strong>Payment Verification:</strong> ❌ Not Verified (Payment Pending)</span>
+                            </div>
+                          )}
                         </div>
 
                         {/* Order Items */}

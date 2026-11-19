@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
-import { ShoppingCart, CheckCircle2, Clock, Truck, Package, Search, Phone, MapPin, RotateCcw, MessageCircle, AlertCircle } from 'lucide-react';
+import { 
+  ShoppingCart, CheckCircle2, Clock, Truck, Package, Search, Phone, 
+  MapPin, RotateCcw, MessageCircle, AlertCircle, ShieldCheck, XCircle, Check, Zap 
+} from 'lucide-react';
 import { Storage } from '../../shared/services/storage';
 
 export default function OrderManager({ orders, products, onUpdateOrders }) {
@@ -11,8 +14,9 @@ export default function OrderManager({ orders, products, onUpdateOrders }) {
     if (!o) return false;
     const matchesFilter = 
       filter === 'ALL' ||
-      (filter === 'VERIFY' && o.status === 'PENDING_VERIFICATION') ||
-      (filter === 'PENDING' && o.status === 'PENDING_PAYMENT') ||
+      (filter === 'AUTO' && (o.approvalType === 'AUTOMATIC_SMS_WEBHOOK' || o.paymentVerification === 'AUTO_VERIFIED')) ||
+      (filter === 'VERIFY' && (o.status === 'PENDING_VERIFICATION' || o.paymentVerification === 'PENDING_VERIFICATION')) ||
+      (filter === 'UNVERIFIED' && (o.status === 'PENDING_PAYMENT' || o.paymentVerification === 'REJECTED' || (!o.status?.includes('PAID') && o.status !== 'PROCESSING' && o.status !== 'SHIPPED'))) ||
       (filter === 'PAID' && (o.status === 'PAID_APPROVED' || o.status === 'PAID')) ||
       (filter === 'PROCESSING' && o.status === 'PROCESSING') ||
       (filter === 'SHIPPED' && o.status === 'SHIPPED') ||
@@ -28,6 +32,46 @@ export default function OrderManager({ orders, products, onUpdateOrders }) {
 
     return matchesFilter && (idMatch || nameMatch || phoneMatch || utrMatch);
   });
+
+  // Verify Payment Action (Manual Admin Cross-Check against Bank Statement)
+  const handleVerifyPayment = (orderId, isApproved) => {
+    const target = (orders || []).find(o => o && o.id === orderId);
+    if (!target) return;
+
+    const newStatus = isApproved ? 'PAID_APPROVED' : 'PENDING_PAYMENT';
+    const newVerification = isApproved ? 'MANUAL_VERIFIED' : 'REJECTED';
+
+    const updated = (orders || []).map(ord => {
+      if (ord && ord.id === orderId) {
+        return {
+          ...ord,
+          status: newStatus,
+          paymentVerification: newVerification,
+          approvalType: isApproved ? 'MANUAL_ADMIN' : ord.approvalType,
+          verifiedAt: isApproved ? new Date().toISOString() : null,
+          verifiedBy: isApproved ? 'ADMIN' : null
+        };
+      }
+      return ord;
+    });
+
+    // If approved, deduct stock
+    if (isApproved && target.status !== 'PAID_APPROVED' && target.status !== 'PAID') {
+      const storedProducts = Storage.getProducts() || products;
+      const targetItems = target.items || [];
+      const updatedProducts = (storedProducts || []).map(p => {
+        const orderedItem = targetItems.find(it => it && it.name === p.name);
+        if (orderedItem) {
+          return { ...p, stockUnits: Math.max(0, p.stockUnits - (parseInt(orderedItem.qty) || 0)) };
+        }
+        return p;
+      });
+      Storage.saveProducts(updatedProducts);
+    }
+
+    Storage.saveOrders(updated);
+    onUpdateOrders(updated);
+  };
 
   const handleUpdateStatus = (orderId, newStatus) => {
     const target = (orders || []).find(o => o && o.id === orderId);
@@ -102,8 +146,9 @@ export default function OrderManager({ orders, products, onUpdateOrders }) {
       <div className="flex flex-wrap gap-2">
         {[
           { id: 'ALL', label: 'All Orders' },
-          { id: 'VERIFY', label: 'Verify UTR (Manual)' },
-          { id: 'PENDING', label: 'Pending Payment' },
+          { id: 'AUTO', label: '⚡ Auto-Verified' },
+          { id: 'VERIFY', label: '⏳ Verify UTR (Manual)' },
+          { id: 'UNVERIFIED', label: '❌ Not Verified / Unpaid' },
           { id: 'PAID', label: 'Paid & Approved' },
           { id: 'PROCESSING', label: 'In Production' },
           { id: 'SHIPPED', label: 'Shipped' },
@@ -140,7 +185,8 @@ export default function OrderManager({ orders, products, onUpdateOrders }) {
                   <th className="py-3.5 px-4">Customer Details</th>
                   <th className="py-3.5 px-4">Ordered Items</th>
                   <th className="py-3.5 px-4">Amount &amp; UTR</th>
-                  <th className="py-3.5 px-4">Status</th>
+                  <th className="py-3.5 px-4">Payment Verification</th>
+                  <th className="py-3.5 px-4">Stage</th>
                   <th className="py-3.5 px-4">Actions &amp; Refund</th>
                 </tr>
               </thead>
@@ -182,60 +228,148 @@ export default function OrderManager({ orders, products, onUpdateOrders }) {
                         ₹{(Number(o.totalAmount || o.amount || 0)).toFixed(2)}
                       </div>
                       <div className="text-[10px] text-slate-500 font-mono">
-                        Ref: {o.utr || 'Pending'}
+                        UTR: <strong className="text-stone-800">{o.utr || 'None'}</strong>
                       </div>
                     </td>
+
+                    {/* Payment Verification Column */}
                     <td className="py-3.5 px-4">
-                      {o.status === 'PENDING_VERIFICATION' && (
-                        <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-900 border border-amber-300 text-[11px] font-bold px-2.5 py-0.5 rounded-full">
-                          <Clock size={12} className="text-amber-700" /> Verify UTR
-                        </span>
+                      {(o.approvalType === 'AUTOMATIC_SMS_WEBHOOK' || o.paymentVerification === 'AUTO_VERIFIED') && (
+                        <div className="space-y-0.5">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-sm">
+                            <ShieldCheck size={13} className="text-emerald-700 stroke-[2.5]" />
+                            <span>⚡ Auto-Verified</span>
+                          </span>
+                          <p className="text-[10px] text-emerald-700 font-medium">Bank SMS Match ✔</p>
+                        </div>
                       )}
-                      {(o.status === 'PAID_APPROVED' || o.status === 'PAID') && (
-                        <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 text-[11px] font-bold px-2.5 py-0.5 rounded-full">
-                          <CheckCircle2 size={12} /> Paid &amp; Approved
-                        </span>
+
+                      {o.paymentVerification === 'MANUAL_VERIFIED' && (
+                        <div className="space-y-0.5">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-blue-100 text-blue-800 border border-blue-300 shadow-sm">
+                            <CheckCircle2 size={13} className="text-blue-700 stroke-[2.5]" />
+                            <span>✔ Verified (Admin)</span>
+                          </span>
+                          <p className="text-[10px] text-blue-700 font-medium">Bank Checked ✔</p>
+                        </div>
                       )}
-                      {o.status === 'PENDING_PAYMENT' && (
-                        <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-800 text-[11px] font-bold px-2.5 py-0.5 rounded-full">
-                          <Clock size={12} /> Pending GPay
-                        </span>
+
+                      {(o.status === 'PENDING_VERIFICATION' || o.paymentVerification === 'PENDING_VERIFICATION') && o.paymentVerification !== 'MANUAL_VERIFIED' && (
+                        <div className="space-y-0.5">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-300 shadow-sm">
+                            <Clock size={12} className="text-amber-700" />
+                            <span>⏳ Not Verified (Manual UTR)</span>
+                          </span>
+                          <p className="text-[10px] text-amber-800 font-mono">Needs Admin Check</p>
+                        </div>
                       )}
+
+                      {o.paymentVerification === 'REJECTED' && (
+                        <div className="space-y-0.5">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-300 shadow-sm">
+                            <XCircle size={12} className="text-rose-600" />
+                            <span>❌ Not Verified (Rejected)</span>
+                          </span>
+                          <p className="text-[10px] text-rose-600 font-medium">Invalid / Missing</p>
+                        </div>
+                      )}
+
+                      {o.status === 'PENDING_PAYMENT' && !o.paymentVerification && (
+                        <div className="space-y-0.5">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-stone-100 text-stone-700 border border-stone-300 shadow-sm">
+                            <AlertCircle size={12} className="text-stone-500" />
+                            <span>❌ Not Verified (Unpaid)</span>
+                          </span>
+                          <p className="text-[10px] text-stone-500">Awaiting payment</p>
+                        </div>
+                      )}
+
+                      {/* Fallback if status is PAID but no explicit verification tag */}
+                      {(o.status === 'PAID_APPROVED' || o.status === 'PAID') && !o.approvalType && !o.paymentVerification && (
+                        <div className="space-y-0.5">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-sm">
+                            <CheckCircle2 size={13} className="text-emerald-700" />
+                            <span>✔ Verified</span>
+                          </span>
+                        </div>
+                      )}
+                    </td>
+
+                    {/* Stage Column */}
+                    <td className="py-3.5 px-4">
                       {o.status === 'PROCESSING' && (
-                        <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 text-[11px] font-bold px-2.5 py-0.5 rounded-full">
-                          <Package size={12} /> In Production
+                        <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                          <Package size={11} /> In Production
                         </span>
                       )}
                       {o.status === 'SHIPPED' && (
-                        <span className="inline-flex items-center gap-1 bg-purple-100 text-purple-800 text-[11px] font-bold px-2.5 py-0.5 rounded-full">
-                          <Truck size={12} /> Shipped
+                        <span className="inline-flex items-center gap-1 bg-purple-100 text-purple-800 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                          <Truck size={11} /> Shipped
                         </span>
                       )}
                       {o.status === 'REFUNDED' && (
-                        <span className="inline-flex items-center gap-1 bg-rose-100 text-rose-800 text-[11px] font-bold px-2.5 py-0.5 rounded-full">
-                          <RotateCcw size={12} /> Refunded (Restocked)
+                        <span className="inline-flex items-center gap-1 bg-rose-100 text-rose-800 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                          <RotateCcw size={11} /> Refunded
+                        </span>
+                      )}
+                      {(o.status === 'PAID_APPROVED' || o.status === 'PAID') && (
+                        <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-[11px] font-semibold px-2 py-0.5 rounded-full">
+                          Ready to Pack
+                        </span>
+                      )}
+                      {(o.status === 'PENDING_PAYMENT' || o.status === 'PENDING_VERIFICATION') && (
+                        <span className="text-[11px] text-stone-400">
+                          Waiting for Payment
                         </span>
                       )}
                     </td>
+
+                    {/* Actions Column */}
                     <td className="py-3.5 px-4">
                       <div className="flex flex-wrap items-center gap-1.5">
-                        {(o.status === 'PENDING_VERIFICATION' || o.status === 'PENDING_PAYMENT') && (
-                          <button
-                            onClick={() => handleUpdateStatus(o.id, 'PAID_APPROVED')}
-                            className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all shadow-sm flex items-center gap-1"
-                          >
-                            <CheckCircle2 size={12} />
-                            <span>{o.status === 'PENDING_VERIFICATION' ? 'Verify & Approve' : 'Approve'}</span>
-                          </button>
+                        {/* Verify Payment Button */}
+                        {(o.status === 'PENDING_VERIFICATION' || o.status === 'PENDING_PAYMENT' || o.paymentVerification === 'REJECTED' || o.paymentVerification === 'PENDING_VERIFICATION') && (
+                          <>
+                            <button
+                              onClick={() => handleVerifyPayment(o.id, true)}
+                              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all shadow-sm flex items-center gap-1 active:scale-95"
+                              title="Check bank account and confirm payment"
+                            >
+                              <Check size={12} />
+                              <span>Verify &amp; Approve</span>
+                            </button>
+
+                            {o.status === 'PENDING_VERIFICATION' && (
+                              <button
+                                onClick={() => handleVerifyPayment(o.id, false)}
+                                className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold transition-all"
+                                title="Mark UTR as not found in statement"
+                              >
+                                Reject UTR
+                              </button>
+                            )}
+                          </>
                         )}
+
+                        {/* Production Workflow */}
                         {(o.status === 'PAID_APPROVED' || o.status === 'PAID') && (
-                          <button
-                            onClick={() => handleUpdateStatus(o.id, 'PROCESSING')}
-                            className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-all shadow-sm"
-                          >
-                            Pack
-                          </button>
+                          <>
+                            <button
+                              onClick={() => handleUpdateStatus(o.id, 'PROCESSING')}
+                              className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-all shadow-sm"
+                            >
+                              Pack
+                            </button>
+                            <button
+                              onClick={() => handleVerifyPayment(o.id, false)}
+                              className="px-2 py-1 bg-stone-100 hover:bg-stone-200 text-stone-600 rounded-lg text-[11px] font-semibold"
+                              title="Mark payment as not received"
+                            >
+                              Unverify
+                            </button>
+                          </>
                         )}
+
                         {o.status === 'PROCESSING' && (
                           <button
                             onClick={() => handleUpdateStatus(o.id, 'SHIPPED')}

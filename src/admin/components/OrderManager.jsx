@@ -7,28 +7,33 @@ export default function OrderManager({ orders, products, onUpdateOrders }) {
   const [search, setSearch] = useState('');
   const [refundModalOrder, setRefundModalOrder] = useState(null);
 
-  const filteredOrders = orders.filter(o => {
+  const filteredOrders = (orders || []).filter(o => {
+    if (!o) return false;
     const matchesFilter = 
       filter === 'ALL' ||
+      (filter === 'VERIFY' && o.status === 'PENDING_VERIFICATION') ||
       (filter === 'PENDING' && o.status === 'PENDING_PAYMENT') ||
-      (filter === 'PAID' && o.status === 'PAID_APPROVED') ||
+      (filter === 'PAID' && (o.status === 'PAID_APPROVED' || o.status === 'PAID')) ||
       (filter === 'PROCESSING' && o.status === 'PROCESSING') ||
       (filter === 'SHIPPED' && o.status === 'SHIPPED') ||
       (filter === 'REFUNDED' && o.status === 'REFUNDED');
 
-    const matchesSearch = 
-      o.id.toLowerCase().includes(search.toLowerCase()) ||
-      o.customerName.toLowerCase().includes(search.toLowerCase()) ||
-      o.phone.includes(search);
+    const searchLower = (search || '').toLowerCase().trim();
+    if (!searchLower) return matchesFilter;
 
-    return matchesFilter && matchesSearch;
+    const idMatch = (o.id || o.orderId || '').toLowerCase().includes(searchLower);
+    const nameMatch = (o.customerName || '').toLowerCase().includes(searchLower);
+    const phoneMatch = String(o.phone || '').includes(searchLower);
+    const utrMatch = String(o.utr || '').toLowerCase().includes(searchLower);
+
+    return matchesFilter && (idMatch || nameMatch || phoneMatch || utrMatch);
   });
 
   const handleUpdateStatus = (orderId, newStatus) => {
-    const target = orders.find(o => o.id === orderId);
+    const target = (orders || []).find(o => o && o.id === orderId);
 
-    const updated = orders.map(ord => {
-      if (ord.id === orderId) {
+    const updated = (orders || []).map(ord => {
+      if (ord && ord.id === orderId) {
         return { 
           ...ord, 
           status: newStatus,
@@ -39,12 +44,13 @@ export default function OrderManager({ orders, products, onUpdateOrders }) {
     });
 
     // If marked as paid, deduct stock
-    if (newStatus === 'PAID_APPROVED' && target && target.status !== 'PAID_APPROVED') {
+    if (newStatus === 'PAID_APPROVED' && target && target.status !== 'PAID_APPROVED' && target.status !== 'PAID') {
       const storedProducts = Storage.getProducts() || products;
-      const updatedProducts = storedProducts.map(p => {
-        const orderedItem = target.items.find(it => it.name === p.name);
+      const targetItems = target.items || [];
+      const updatedProducts = (storedProducts || []).map(p => {
+        const orderedItem = targetItems.find(it => it && it.name === p.name);
         if (orderedItem) {
-          return { ...p, stockUnits: Math.max(0, p.stockUnits - orderedItem.qty) };
+          return { ...p, stockUnits: Math.max(0, p.stockUnits - (parseInt(orderedItem.qty) || 0)) };
         }
         return p;
       });
@@ -54,10 +60,11 @@ export default function OrderManager({ orders, products, onUpdateOrders }) {
     // If REFUNDED: RESTORE STOCK AUTOMATICALLY (+Restock)
     if (newStatus === 'REFUNDED' && target && target.status !== 'REFUNDED') {
       const storedProducts = Storage.getProducts() || products;
-      const updatedProducts = storedProducts.map(p => {
-        const orderedItem = target.items.find(it => it.name === p.name);
+      const targetItems = target.items || [];
+      const updatedProducts = (storedProducts || []).map(p => {
+        const orderedItem = targetItems.find(it => it && it.name === p.name);
         if (orderedItem) {
-          return { ...p, stockUnits: p.stockUnits + (parseInt(orderedItem.qty) || 0) };
+          return { ...p, stockUnits: (p.stockUnits || 0) + (parseInt(orderedItem.qty) || 0) };
         }
         return p;
       });
@@ -95,6 +102,7 @@ export default function OrderManager({ orders, products, onUpdateOrders }) {
       <div className="flex flex-wrap gap-2">
         {[
           { id: 'ALL', label: 'All Orders' },
+          { id: 'VERIFY', label: 'Verify UTR (Manual)' },
           { id: 'PENDING', label: 'Pending Payment' },
           { id: 'PAID', label: 'Paid & Approved' },
           { id: 'PROCESSING', label: 'In Production' },
@@ -138,43 +146,52 @@ export default function OrderManager({ orders, products, onUpdateOrders }) {
               </thead>
               <tbody className="divide-y divide-slate-100 font-medium">
                 {filteredOrders.map(o => (
-                  <tr key={o.id} className="hover:bg-slate-50/60 transition-colors">
-                    <td className="py-3.5 px-4 font-mono font-bold text-slate-900">{o.id}</td>
+                  <tr key={o.id || o.orderId || Math.random()} className="hover:bg-slate-50/60 transition-colors">
+                    <td className="py-3.5 px-4 font-mono font-bold text-slate-900">{o.id || o.orderId || 'N/A'}</td>
                     <td className="py-3.5 px-4">
-                      <div className="font-bold text-slate-900">{o.customerName}</div>
+                      <div className="font-bold text-slate-900">{o.customerName || 'Anonymous Customer'}</div>
                       <div className="text-[11px] text-slate-600 flex items-center gap-1 mt-0.5">
                         <Phone size={10} className="text-amber-800" />
-                        <span className="font-mono">{o.phone}</span>
-                        <a
-                          href={`https://wa.me/91${o.phone}?text=Hello%20${encodeURIComponent(o.customerName)},%20regarding%20your%20order%20${o.id}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="ml-1 text-emerald-600 hover:text-emerald-700 p-0.5"
-                          title="Message on WhatsApp"
-                        >
-                          <MessageCircle size={12} />
-                        </a>
+                        <span className="font-mono">{o.phone || 'N/A'}</span>
+                        {o.phone && (
+                          <a
+                            href={`https://wa.me/91${o.phone}?text=Hello%20${encodeURIComponent(o.customerName || 'Customer')},%20regarding%20your%20order%20${o.id || o.orderId}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="ml-1 text-emerald-600 hover:text-emerald-700 p-0.5"
+                            title="Message on WhatsApp"
+                          >
+                            <MessageCircle size={12} />
+                          </a>
+                        )}
                       </div>
                       <div className="text-[10px] text-slate-400 flex items-center gap-1">
-                        <MapPin size={10} /> {o.city}
+                        <MapPin size={10} /> {o.city || 'Thanjavur'}
                       </div>
                     </td>
                     <td className="py-3.5 px-4">
-                      {o.items.map((it, idx) => (
+                      {(o.items || []).map((it, idx) => (
                         <div key={idx} className="text-slate-700">
-                          <strong>{it.qty}x</strong> {it.name}
-                          {it.size && <span className="text-[10px] text-slate-400 ml-1">({it.size})</span>}
+                          <strong>{it?.qty || 1}x</strong> {it?.name || 'Bag'}
+                          {it?.size && <span className="text-[10px] text-slate-400 ml-1">({it.size})</span>}
                         </div>
                       ))}
                     </td>
                     <td className="py-3.5 px-4">
-                      <div className="font-bold text-slate-900 text-sm">₹{o.totalAmount.toFixed(2)}</div>
+                      <div className="font-bold text-slate-900 text-sm">
+                        ₹{(Number(o.totalAmount || o.amount || 0)).toFixed(2)}
+                      </div>
                       <div className="text-[10px] text-slate-500 font-mono">
                         Ref: {o.utr || 'Pending'}
                       </div>
                     </td>
                     <td className="py-3.5 px-4">
-                      {o.status === 'PAID_APPROVED' && (
+                      {o.status === 'PENDING_VERIFICATION' && (
+                        <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-900 border border-amber-300 text-[11px] font-bold px-2.5 py-0.5 rounded-full">
+                          <Clock size={12} className="text-amber-700" /> Verify UTR
+                        </span>
+                      )}
+                      {(o.status === 'PAID_APPROVED' || o.status === 'PAID') && (
                         <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 text-[11px] font-bold px-2.5 py-0.5 rounded-full">
                           <CheckCircle2 size={12} /> Paid &amp; Approved
                         </span>
@@ -202,15 +219,16 @@ export default function OrderManager({ orders, products, onUpdateOrders }) {
                     </td>
                     <td className="py-3.5 px-4">
                       <div className="flex flex-wrap items-center gap-1.5">
-                        {o.status === 'PENDING_PAYMENT' && (
+                        {(o.status === 'PENDING_VERIFICATION' || o.status === 'PENDING_PAYMENT') && (
                           <button
                             onClick={() => handleUpdateStatus(o.id, 'PAID_APPROVED')}
-                            className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all shadow-sm"
+                            className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all shadow-sm flex items-center gap-1"
                           >
-                            Approve
+                            <CheckCircle2 size={12} />
+                            <span>{o.status === 'PENDING_VERIFICATION' ? 'Verify & Approve' : 'Approve'}</span>
                           </button>
                         )}
-                        {o.status === 'PAID_APPROVED' && (
+                        {(o.status === 'PAID_APPROVED' || o.status === 'PAID') && (
                           <button
                             onClick={() => handleUpdateStatus(o.id, 'PROCESSING')}
                             className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-all shadow-sm"
@@ -228,7 +246,7 @@ export default function OrderManager({ orders, products, onUpdateOrders }) {
                         )}
 
                         {/* Refund Action */}
-                        {(o.status === 'PAID_APPROVED' || o.status === 'PROCESSING') && (
+                        {(o.status === 'PAID_APPROVED' || o.status === 'PAID' || o.status === 'PROCESSING') && (
                           <button
                             onClick={() => setRefundModalOrder(o)}
                             className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold transition-all flex items-center gap-1"
@@ -260,15 +278,15 @@ export default function OrderManager({ orders, products, onUpdateOrders }) {
             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs space-y-2">
               <div className="flex justify-between">
                 <span className="text-slate-500">Refund Amount:</span>
-                <span className="font-extrabold text-slate-900 text-sm">₹{refundModalOrder.totalAmount.toFixed(2)}</span>
+                <span className="font-extrabold text-slate-900 text-sm">₹{(Number(refundModalOrder.totalAmount || refundModalOrder.amount || 0)).toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Customer:</span>
-                <span className="font-bold text-slate-800">{refundModalOrder.customerName}</span>
+                <span className="font-bold text-slate-800">{refundModalOrder.customerName || 'Customer'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Phone (GPay UPI):</span>
-                <span className="font-mono font-bold text-amber-900">{refundModalOrder.phone}</span>
+                <span className="font-mono font-bold text-amber-900">{refundModalOrder.phone || 'N/A'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Transaction UTR:</span>

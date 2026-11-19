@@ -16,10 +16,16 @@ const KEYS = {
 // Owner authorized phone number
 const OWNER_PHONE = '8940679198';
 
-const CLOUD_ENDPOINTS = [
-  'http://10.220.210.247:3002',
-  'http://localhost:3002'
-];
+const getCloudEndpoints = () => {
+  const list = [];
+  if (typeof window !== 'undefined' && window.location.hostname) {
+    const host = window.location.hostname;
+    list.push(`http://${host}:3002`);
+  }
+  list.push('http://10.220.210.247:3002');
+  list.push('http://localhost:3002');
+  return [...new Set(list)];
+};
 
 export const Storage = {
   // --- Google & Customer Auth ---
@@ -85,7 +91,7 @@ export const Storage = {
 
   // --- Cloud Sync ---
   syncOrdersFromCloud: async () => {
-    for (const base of CLOUD_ENDPOINTS) {
+    for (const base of getCloudEndpoints()) {
       try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 1500);
@@ -136,7 +142,7 @@ export const Storage = {
     window.dispatchEvent(new CustomEvent('cb_store_updated', { detail: { key: KEYS.ORDERS, value: orders } }));
 
     // Background push to Cloud Server
-    for (const base of CLOUD_ENDPOINTS) {
+    for (const base of getCloudEndpoints()) {
       try {
         fetch(`${base}/api/orders`, {
           method: 'POST',

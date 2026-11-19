@@ -11,6 +11,7 @@ import CustomerSettingsModal from './components/CustomerSettingsModal';
 import WishlistDrawer from './components/WishlistDrawer';
 import Footer from './components/Footer';
 import AdminApp from '../admin/App';
+import GoogleAuthModal from './components/GoogleAuthModal';
 import { Search, SlidersHorizontal, ArrowUpDown, Sparkles, CheckCircle2 } from 'lucide-react';
 
 export default function App() {
@@ -25,6 +26,9 @@ export default function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState('orders');
   const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [authUser, setAuthUser] = useState(() => Storage.getAuthUser());
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authRedirectMessage, setAuthRedirectMessage] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('featured');
@@ -70,7 +74,16 @@ export default function App() {
       if (key === 'cb_orders' && newValue) setOrders(newValue);
       if (key === 'cb_wishlist' && newValue) setWishlist(newValue);
     });
-    return cleanup;
+
+    const handleAuthChange = (e) => {
+      setAuthUser(e.detail?.user !== undefined ? e.detail.user : Storage.getAuthUser());
+    };
+    window.addEventListener('cb_auth_changed', handleAuthChange);
+
+    return () => {
+      if (cleanup) cleanup();
+      window.removeEventListener('cb_auth_changed', handleAuthChange);
+    };
   }, []);
 
   // Load cart from localStorage
@@ -207,10 +220,33 @@ export default function App() {
 
   const cartItemCount = cartItems.reduce((sum, item) => sum + item.qty, 0);
 
-  // Checkout handler
+  // Checkout handler (Requires Google Login)
   const handleCheckout = useCallback(() => {
+    if (!authUser) {
+      setAuthRedirectMessage('Please sign in with your Google account to confirm and place your order.');
+      setIsAuthModalOpen(true);
+      return;
+    }
     setIsCartOpen(false);
     setIsCheckoutOpen(true);
+  }, [authUser]);
+
+  // Auth success handler
+  const handleAuthSuccess = useCallback((user) => {
+    setAuthUser(user);
+    setIsAuthModalOpen(false);
+    showToast(`Welcome, ${user.name}!`);
+    if (cartItems.length > 0) {
+      setIsCartOpen(false);
+      setIsCheckoutOpen(true);
+    }
+  }, [cartItems]);
+
+  // Sign out handler
+  const handleLogout = useCallback(() => {
+    Storage.logoutUser();
+    setAuthUser(null);
+    showToast('Signed out of Google account.');
   }, []);
 
   // Clear cart after successful order
@@ -279,7 +315,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Navbar with Cart, Wishlist, and Settings buttons */}
+      {/* Navbar with Cart, Wishlist, Google Auth, and Settings buttons */}
       <Navbar
         cartItemCount={cartItemCount}
         onCartOpen={() => setIsCartOpen(true)}
@@ -290,6 +326,13 @@ export default function App() {
           setSettingsTab('orders');
           setIsSettingsOpen(true);
         }}
+        authUser={authUser}
+        onOpenAuth={() => {
+          setAuthRedirectMessage('Sign in with Google to view and manage your account.');
+          setIsAuthModalOpen(true);
+        }}
+        onLogout={handleLogout}
+        onOpenAdmin={handleOpenAdmin}
       />
 
       {/* Hero Section */}
@@ -466,6 +509,7 @@ export default function App() {
           getUnitPrice={getUnitPrice}
           subtotal={cartSubtotal}
           onCheckout={handleCheckout}
+          authUser={authUser}
         />
       )}
 
@@ -499,6 +543,11 @@ export default function App() {
           onClose={() => setIsCheckoutOpen(false)}
           onOrderCompleted={handleOrderSuccess}
           onOrderSuccess={handleOrderSuccess}
+          authUser={authUser}
+          onOpenAuth={() => {
+            setAuthRedirectMessage('Sign in with Google to place and verify your order.');
+            setIsAuthModalOpen(true);
+          }}
         />
       )}
 
@@ -506,6 +555,14 @@ export default function App() {
       {isAdminOpen && (
         <AdminApp onClose={() => setIsAdminOpen(false)} />
       )}
+
+      {/* 7. Google Authentication Modal */}
+      <GoogleAuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onSuccess={handleAuthSuccess}
+        redirectMessage={authRedirectMessage}
+      />
     </div>
   );
 }

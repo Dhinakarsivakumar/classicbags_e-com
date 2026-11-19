@@ -12,7 +12,9 @@ export default function CheckoutModal({
   onClose, 
   cartItems = [], 
   onOrderCompleted, 
-  onOrderSuccess 
+  onOrderSuccess,
+  authUser,
+  onOpenAuth
 }) {
   const [customerName, setCustomerName] = useState('');
   const [phone, setPhone] = useState('8940679198');
@@ -30,10 +32,15 @@ export default function CheckoutModal({
   const [autoVerified, setAutoVerified] = useState(false);
 
   useEffect(() => {
-    const profile = Storage.getUserProfile();
-    if (profile) {
-      if (profile.name) setCustomerName(profile.name);
-      if (profile.phone) setPhone(profile.phone);
+    if (authUser) {
+      if (authUser.name) setCustomerName(authUser.name);
+      if (authUser.phone) setPhone(authUser.phone);
+    } else {
+      const profile = Storage.getUserProfile();
+      if (profile) {
+        if (profile.name) setCustomerName(profile.name);
+        if (profile.phone) setPhone(profile.phone);
+      }
     }
 
     const addresses = Storage.getAddresses() || [];
@@ -46,7 +53,7 @@ export default function CheckoutModal({
       if (def.fullName && !customerName) setCustomerName(def.fullName);
       if (def.phone && !phone) setPhone(def.phone);
     }
-  }, [isOpen]);
+  }, [isOpen, authUser]);
 
   const handleSelectSavedAddress = (addrId) => {
     setSelectedAddressId(addrId);
@@ -80,9 +87,13 @@ export default function CheckoutModal({
   // Deep Link for Google Pay UPI Intent
   const upiIntentUrl = `upi://pay?pa=${STORE_SETTINGS.upiId}&pn=${encodeURIComponent(STORE_SETTINGS.merchantName)}&am=${orderAmount}&cu=INR&tn=${orderId}`;
 
-  // Proceed from Details to Payment (Saves pending order for automatic webhook matching)
+  // Proceed from Details to Payment (Requires Google Login)
   const handleProceedToPayment = (e) => {
     e.preventDefault();
+    if (!authUser) {
+      if (onOpenAuth) onOpenAuth();
+      return;
+    }
     if (!customerName || !phone) return;
 
     if (paymentMethod === 'cod') {
@@ -329,6 +340,45 @@ export default function CheckoutModal({
         {/* STEP 1: Details & Payment Mode Selection */}
         {step === 'details' && (
           <form onSubmit={handleProceedToPayment} className="p-5 sm:p-6 space-y-4">
+            {/* Google Account Verified Card */}
+            {authUser ? (
+              <div className="p-3 bg-stone-50 border border-stone-200 rounded-2xl flex items-center justify-between gap-3 shadow-sm">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-full bg-white border border-stone-200 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    {authUser.avatar ? (
+                      <img src={authUser.avatar} alt={authUser.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="font-bold text-xs text-stone-700">{(authUser.name || 'G')[0]}</span>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-bold text-stone-900 text-xs truncate flex items-center gap-1">
+                      <span>{authUser.name}</span>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                    </p>
+                    <p className="text-[11px] text-stone-500 truncate">{authUser.email}</p>
+                  </div>
+                </div>
+                <span className="text-[10px] bg-emerald-100 text-emerald-800 font-extrabold px-2 py-0.5 rounded-full flex-shrink-0">
+                  Google Verified
+                </span>
+              </div>
+            ) : (
+              <div className="p-3.5 bg-amber-50 border border-amber-300 rounded-2xl flex items-center justify-between gap-2 shadow-sm">
+                <div className="flex items-center gap-2 text-xs font-bold text-amber-950">
+                  <Lock className="w-4 h-4 text-[#7e5222] flex-shrink-0" />
+                  <span>Google Login required to place order</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={onOpenAuth}
+                  className="px-3 py-1.5 bg-white hover:bg-stone-50 text-stone-800 border border-stone-300 rounded-full text-xs font-bold shadow-sm transition-all whitespace-nowrap"
+                >
+                  Sign In
+                </button>
+              </div>
+            )}
+
             {/* Customer Name */}
             <div>
               <label className="block text-xs font-bold text-stone-700 mb-1">Business / Shop or Customer Name *</label>

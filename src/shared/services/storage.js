@@ -10,6 +10,7 @@ const KEYS = {
   ADDRESSES: 'cb_addresses',
   USER_PROFILE: 'cb_user_profile',
   ADMIN_AUTH: 'cb_admin_auth',
+  AUTH_USER: 'cb_auth_user',
 };
 
 // Owner authorized phone number
@@ -21,6 +22,38 @@ const CLOUD_ENDPOINTS = [
 ];
 
 export const Storage = {
+  // --- Google & Customer Auth ---
+  getAuthUser: () => {
+    try {
+      return JSON.parse(localStorage.getItem(KEYS.AUTH_USER)) || null;
+    } catch {
+      return null;
+    }
+  },
+
+  setAuthUser: (user) => {
+    if (user) {
+      localStorage.setItem(KEYS.AUTH_USER, JSON.stringify(user));
+      // Auto-update user profile
+      const current = Storage.getUserProfile();
+      Storage.saveUserProfile({
+        ...current,
+        name: user.name || current.name,
+        email: user.email || current.email,
+        phone: user.phone || current.phone || '8940679198',
+        avatar: user.picture || user.avatar || current.avatar
+      });
+    } else {
+      localStorage.removeItem(KEYS.AUTH_USER);
+    }
+    window.dispatchEvent(new Event('storage'));
+    window.dispatchEvent(new CustomEvent('cb_auth_changed', { detail: { user } }));
+  },
+
+  logoutUser: () => {
+    Storage.setAuthUser(null);
+  },
+
   // --- Admin Access Control ---
   isAdminPhone: (phone) => {
     if (!phone) return false;

@@ -44,10 +44,10 @@ export const Storage = {
       const current = Storage.getUserProfile();
       Storage.saveUserProfile({
         ...current,
-        name: user.name || current.name,
-        email: user.email || current.email,
-        phone: user.phone || current.phone || '8940679198',
-        avatar: user.picture || user.avatar || current.avatar
+        name: user.name || current.name || '',
+        email: user.email || current.email || '',
+        phone: user.phone || current.phone || '',
+        avatar: user.picture || user.avatar || current.avatar || ''
       });
     } else {
       localStorage.removeItem(KEYS.AUTH_USER);
@@ -187,20 +187,7 @@ export const Storage = {
   getAddresses: () => {
     try {
       const saved = JSON.parse(localStorage.getItem(KEYS.ADDRESSES));
-      if (saved && saved.length > 0) return saved;
-      return [
-        {
-          id: 'addr-default',
-          title: 'Shop / Factory',
-          fullName: 'S. Dhinakar',
-          phone: '8940679198',
-          street: 'Plot No. 38, 6th Street, Medical College Road',
-          area: 'LIC Colony',
-          city: 'Thanjavur',
-          pincode: '613007',
-          isDefault: true
-        }
-      ];
+      return (saved && Array.isArray(saved)) ? saved : [];
     } catch { return []; }
   },
   saveAddresses: (addresses) => {
@@ -212,13 +199,13 @@ export const Storage = {
   getUserProfile: () => {
     try {
       return JSON.parse(localStorage.getItem(KEYS.USER_PROFILE)) || {
-        name: 'Classic Customer',
-        phone: '8940679198',
-        email: 'dhinakar@classicbags.com',
-        businessName: 'Thanjavur Retail Store'
+        name: '',
+        phone: '',
+        email: '',
+        businessName: ''
       };
     } catch {
-      return { name: '', phone: '8940679198', email: '', businessName: '' };
+      return { name: '', phone: '', email: '', businessName: '' };
     }
   },
   saveUserProfile: (profile) => {

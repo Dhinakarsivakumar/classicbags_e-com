@@ -17,8 +17,8 @@ export default function CheckoutModal({
   onOpenAuth
 }) {
   const [customerName, setCustomerName] = useState('');
-  const [phone, setPhone] = useState('8940679198');
-  const [city, setCity] = useState('Thanjavur');
+  const [phone, setPhone] = useState('');
+  const [city, setCity] = useState('');
   const [address, setAddress] = useState('');
   const [savedAddresses, setSavedAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState('');
@@ -439,7 +439,7 @@ export default function CheckoutModal({
                 <input
                   type="tel"
                   required
-                  placeholder="8940679198"
+                  placeholder="e.g. 9876543210"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-stone-300 rounded-xl focus:ring-2 focus:ring-[#7e5222] focus:outline-none"

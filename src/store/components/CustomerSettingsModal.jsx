@@ -23,11 +23,11 @@ export default function CustomerSettingsModal({
   const [newAddress, setNewAddress] = useState({
     title: 'Shop',
     fullName: '',
-    phone: '8940679198',
+    phone: '',
     street: '',
     area: '',
-    city: 'Thanjavur',
-    pincode: '613007',
+    city: '',
+    pincode: '',
     isDefault: false
   });
   const [saveSuccess, setSaveSuccess] = useState('');
@@ -50,7 +50,7 @@ export default function CustomerSettingsModal({
       setNewAddress(prev => ({ 
         ...prev, 
         fullName: p.name || '', 
-        phone: p.phone || '8940679198' 
+        phone: p.phone || '' 
       }));
     }
   };
@@ -83,11 +83,11 @@ export default function CustomerSettingsModal({
     setNewAddress({
       title: 'Shop',
       fullName: profile.name || '',
-      phone: profile.phone || '8940679198',
+      phone: profile.phone || '',
       street: '',
       area: '',
-      city: 'Thanjavur',
-      pincode: '613007',
+      city: '',
+      pincode: '',
       isDefault: false
     });
     setSaveSuccess('New delivery address saved!');
@@ -135,7 +135,7 @@ export default function CustomerSettingsModal({
                 {profile.businessName || profile.name || 'Account Settings'}
               </h3>
               <p className="text-[11px] text-amber-200/90 flex items-center gap-1">
-                <span>{profile.phone || '8940679198'}</span>
+                <span>{profile.phone || 'Not set'}</span>
               </p>
             </div>
           </div>
@@ -217,7 +217,7 @@ export default function CustomerSettingsModal({
                 </h3>
                 <p className="text-xs text-stone-500 truncate mt-0.5 flex items-center gap-1">
                   <Phone className="w-3 h-3 text-[#7e5222]" />
-                  <span>{profile.phone || '8940679198'}</span>
+                  <span>{profile.phone || 'Not set'}</span>
                 </p>
               </div>
             </div>
@@ -813,7 +813,7 @@ export default function CustomerSettingsModal({
                         type="text"
                         value={profile.name || ''}
                         onChange={e => setProfile({ ...profile, name: e.target.value })}
-                        placeholder="S. Dhinakar"
+                        placeholder="Your Name or Shop Name"
                         className="w-full text-xs pl-9 pr-3 py-2.5 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-[#7e5222]"
                       />
                     </div>
@@ -827,9 +827,9 @@ export default function CustomerSettingsModal({
                       <Phone className="w-3.5 h-3.5 text-stone-400 absolute left-3.5 top-3" />
                       <input
                         type="tel"
-                        value={profile.phone || '8940679198'}
+                        value={profile.phone || ''}
                         onChange={e => setProfile({ ...profile, phone: e.target.value })}
-                        placeholder="8940679198"
+                        placeholder="e.g. 9876543210"
                         className="w-full text-xs pl-9 pr-3 py-2.5 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-[#7e5222]"
                       />
                     </div>
@@ -843,7 +843,7 @@ export default function CustomerSettingsModal({
                       type="email"
                       value={profile.email || ''}
                       onChange={e => setProfile({ ...profile, email: e.target.value })}
-                      placeholder="dhinakar@classicbags.com"
+                      placeholder="e.g. customer@gmail.com"
                       className="w-full text-xs px-3 py-2.5 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-[#7e5222]"
                     />
                   </div>

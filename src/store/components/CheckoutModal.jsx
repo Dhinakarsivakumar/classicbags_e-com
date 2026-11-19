@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, Smartphone, QrCode, Copy, CheckCircle2, ArrowRight, 
-  ShieldCheck, Banknote, Building2, CreditCard, Check, RefreshCw
+  ShieldCheck, Check, RefreshCw, AlertCircle, Clock, Lock
 } from 'lucide-react';
 import { STORE_SETTINGS } from '../../shared/data/initialData';
 import { Storage } from '../../shared/services/storage';
@@ -22,14 +22,16 @@ export default function CheckoutModal({
   const [address, setAddress] = useState('');
   const [savedAddresses, setSavedAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('upi'); // 'upi' | 'cod' | 'bank'
   const [step, setStep] = useState('details'); // 'details' | 'payment' | 'success'
   const [createdOrder, setCreatedOrder] = useState(null);
   const [copied, setCopied] = useState(false);
   const [utrInput, setUtrInput] = useState('');
+  const [utrError, setUtrError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderId] = useState(() => `CB-${Math.floor(1000 + Math.random() * 9000)}`);
   const [autoVerified, setAutoVerified] = useState(false);
+  const [countdown, setCountdown] = useState(60);
+  const [showManualUtr, setShowManualUtr] = useState(false);
 
   useEffect(() => {
     if (authUser) {
@@ -87,6 +89,24 @@ export default function CheckoutModal({
   // Deep Link for Google Pay UPI Intent
   const upiIntentUrl = `upi://pay?pa=${STORE_SETTINGS.upiId}&pn=${encodeURIComponent(STORE_SETTINGS.merchantName)}&am=${orderAmount}&cu=INR&tn=${orderId}`;
 
+  // Countdown timer for automatic payment verification radar
+  useEffect(() => {
+    if (step !== 'payment') return;
+    if (countdown <= 0) return;
+
+    const timer = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [step, countdown]);
+
   // Proceed from Details to Payment (Requires Google Login)
   const handleProceedToPayment = (e) => {
     e.preventDefault();
@@ -96,14 +116,11 @@ export default function CheckoutModal({
     }
     if (!customerName || !phone) return;
 
-    if (paymentMethod === 'cod') {
-      finishOrder({
-        method: 'Cash on Delivery (COD)',
-        status: 'CONFIRMED_COD',
-        utr: 'COD-ORDER'
-      });
-      return;
-    }
+    // Reset payment verification state
+    setCountdown(60);
+    setShowManualUtr(false);
+    setUtrError('');
+    setUtrInput('');
 
     // Save PENDING_PAYMENT order so WebhookEngine can instantly auto-match by Order ID or Amount
     const pendingOrder = {
@@ -126,7 +143,7 @@ export default function CheckoutModal({
       totalAmount: parseFloat(orderAmount),
       amount: parseFloat(orderAmount),
       status: 'PENDING_PAYMENT',
-      paymentMethod: paymentMethod === 'bank' ? 'Bank Transfer (NEFT)' : 'Google Pay / UPI',
+      paymentMethod: 'Google Pay / UPI',
       timestamp: new Date().toISOString(),
       createdAt: new Date().toISOString(),
       utr: null
@@ -162,7 +179,9 @@ export default function CheckoutModal({
 
       // 2. Query Webhook Server for real-time payments received by Android Phone
       try {
+        const host = typeof window !== 'undefined' && window.location.hostname ? window.location.hostname : '10.220.210.247';
         const endpoints = [
+          `http://${host}:3002/api/webhook/recent`,
           'http://10.220.210.247:3002/api/webhook/recent',
           'http://localhost:3002/api/webhook/recent'
         ];
@@ -262,6 +281,27 @@ export default function CheckoutModal({
       if (cleanupStorage) cleanupStorage();
     };
   }, [step, orderId, orderAmount, onOrderCompleted, onOrderSuccess]);
+
+  // Handle Manual UTR Submission with strict 12-digit verification
+  const handleManualUtrSubmit = (e) => {
+    e?.preventDefault();
+    const cleanUtr = utrInput.trim();
+    if (!cleanUtr) {
+      setUtrError('Please enter the 12-digit UPI Reference / UTR Number.');
+      return;
+    }
+    // Strict 12-digit number check for UPI transactions
+    if (!/^\d{12}$/.test(cleanUtr)) {
+      setUtrError('Invalid UTR format. Standard UPI Reference Number (UTR/RRN) must be exactly 12 numeric digits (e.g. 432109876543).');
+      return;
+    }
+    setUtrError('');
+    finishOrder({
+      method: 'Google Pay / UPI (Manual Verification)',
+      status: 'PENDING_VERIFICATION',
+      utr: cleanUtr
+    });
+  };
 
   // Complete Order
   const finishOrder = ({ method, status, utr }) => {
@@ -455,83 +495,24 @@ export default function CheckoutModal({
               />
             </div>
 
-            {/* Payment Method Selector */}
+            {/* Payment Method Display - Exclusively Instant Online UPI */}
             <div className="pt-2">
-              <label className="block text-xs font-bold text-stone-800 mb-2">Select Payment Method</label>
-              <div className="space-y-2">
-                {/* 1. Google Pay / UPI */}
-                <div 
-                  onClick={() => setPaymentMethod('upi')}
-                  className={`p-3.5 rounded-2xl border cursor-pointer transition-all flex items-center justify-between ${
-                    paymentMethod === 'upi'
-                      ? 'border-[#7e5222] bg-amber-50/50 ring-1 ring-[#7e5222]'
-                      : 'border-stone-200 hover:border-stone-300 bg-white'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-white border border-stone-200 flex items-center justify-center shadow-sm">
-                      <QrCode className="w-5 h-5 text-[#7e5222]" />
-                    </div>
-                    <div>
-                      <p className="text-xs sm:text-sm font-bold text-stone-900">Google Pay / PhonePe / UPI QR</p>
-                      <p className="text-[11px] text-stone-500">Scan & Pay to {STORE_SETTINGS.merchantName} ({STORE_SETTINGS.upiId})</p>
-                    </div>
+              <label className="block text-xs font-bold text-stone-800 mb-2">Payment Method</label>
+              <div className="p-3.5 rounded-2xl border border-emerald-300 bg-emerald-50/70 flex items-center justify-between shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-white border border-emerald-200 flex items-center justify-center shadow-sm">
+                    <QrCode className="w-5 h-5 text-emerald-700" />
                   </div>
-                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${
-                    paymentMethod === 'upi' ? 'border-[#7e5222] bg-[#7e5222] text-white' : 'border-stone-300'
-                  }`}>
-                    {paymentMethod === 'upi' && <Check size={12} />}
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-xs sm:text-sm font-bold text-stone-900">Google Pay / PhonePe / Instant UPI QR</p>
+                      <span className="text-[10px] bg-emerald-200/80 text-emerald-900 font-bold px-2 py-0.5 rounded-full">Fastest</span>
+                    </div>
+                    <p className="text-[11px] text-stone-600 mt-0.5">Pay direct to {STORE_SETTINGS.merchantName} ({STORE_SETTINGS.upiId}) • Auto-Verified</p>
                   </div>
                 </div>
-
-                {/* 2. Cash on Delivery */}
-                <div 
-                  onClick={() => setPaymentMethod('cod')}
-                  className={`p-3.5 rounded-2xl border cursor-pointer transition-all flex items-center justify-between ${
-                    paymentMethod === 'cod'
-                      ? 'border-[#7e5222] bg-amber-50/50 ring-1 ring-[#7e5222]'
-                      : 'border-stone-200 hover:border-stone-300 bg-white'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-white border border-stone-200 flex items-center justify-center shadow-sm">
-                      <Banknote className="w-5 h-5 text-emerald-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs sm:text-sm font-bold text-stone-900">Cash on Delivery (COD)</p>
-                      <p className="text-[11px] text-stone-500">Pay cash upon bag delivery at your destination</p>
-                    </div>
-                  </div>
-                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${
-                    paymentMethod === 'cod' ? 'border-[#7e5222] bg-[#7e5222] text-white' : 'border-stone-300'
-                  }`}>
-                    {paymentMethod === 'cod' && <Check size={12} />}
-                  </div>
-                </div>
-
-                {/* 3. Bank Transfer */}
-                <div 
-                  onClick={() => setPaymentMethod('bank')}
-                  className={`p-3.5 rounded-2xl border cursor-pointer transition-all flex items-center justify-between ${
-                    paymentMethod === 'bank'
-                      ? 'border-[#7e5222] bg-amber-50/50 ring-1 ring-[#7e5222]'
-                      : 'border-stone-200 hover:border-stone-300 bg-white'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-white border border-stone-200 flex items-center justify-center shadow-sm">
-                      <Building2 className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs sm:text-sm font-bold text-stone-900">Direct Bank Transfer / NEFT</p>
-                      <p className="text-[11px] text-stone-500">Axis Bank Current Account ({STORE_SETTINGS.merchantName})</p>
-                    </div>
-                  </div>
-                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${
-                    paymentMethod === 'bank' ? 'border-[#7e5222] bg-[#7e5222] text-white' : 'border-stone-300'
-                  }`}>
-                    {paymentMethod === 'bank' && <Check size={12} />}
-                  </div>
+                <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center flex-shrink-0">
+                  <Check size={12} />
                 </div>
               </div>
             </div>
@@ -551,14 +532,14 @@ export default function CheckoutModal({
               type="submit"
               className="w-full flex items-center justify-center gap-2 bg-[#7e5222] hover:bg-[#674221] text-white py-3.5 rounded-2xl font-bold text-sm shadow-md transition-all active:scale-95"
             >
-              <span>{paymentMethod === 'cod' ? 'Confirm Cash on Delivery Order' : 'Proceed to Payment'}</span>
+              <span>Proceed to UPI / Google Pay Payment</span>
               <ArrowRight size={16} />
             </button>
           </form>
         )}
 
         {/* STEP 2: UPI / Dynamic QR Payment Screen */}
-        {step === 'payment' && paymentMethod === 'upi' && (
+        {step === 'payment' && (
           <div className="p-5 sm:p-6 space-y-4 text-center">
             {/* Real-time Dynamic UPI QR Code (Directly pre-fills Amount & Order ID) */}
             <DynamicUpiQr 
@@ -570,105 +551,131 @@ export default function CheckoutModal({
             />
 
             {/* Live Auto-Verification Status Radar */}
-            <div className="bg-emerald-50/90 border border-emerald-200 rounded-2xl p-3.5 flex items-center gap-3 animate-pulse text-left shadow-sm">
-              <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center flex-shrink-0">
+            <div className="bg-emerald-50/90 border border-emerald-200 rounded-2xl p-3.5 flex items-center gap-3 shadow-sm text-left">
+              <div className="w-9 h-9 rounded-full bg-emerald-600 text-white flex items-center justify-center flex-shrink-0">
                 <RefreshCw className="w-4 h-4 animate-spin" />
               </div>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <div className="text-xs font-bold text-emerald-950 flex items-center justify-between">
                   <span>Listening for Bank Credit SMS &amp; UPI...</span>
-                  <span className="text-[10px] bg-emerald-200/80 px-2 py-0.5 rounded-full text-emerald-800 font-mono font-bold">AUTO-VERIFYING</span>
+                  <span className="text-[10px] bg-emerald-200/90 text-emerald-900 font-mono font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <Clock size={11} />
+                    <span>{countdown > 0 ? `${countdown}s` : 'Radar Active'}</span>
+                  </span>
                 </div>
                 <p className="text-[11px] text-emerald-700 leading-tight mt-0.5">
-                  Once payment is credited to Dhinakar S, this screen confirms your order automatically!
+                  Once payment is received on Dhinakar's account, this screen confirms your order automatically!
                 </p>
               </div>
             </div>
 
-            {/* UTR Input & Confirmation (Optional backup fallback) */}
-            <div className="pt-2 border-t border-stone-200 space-y-2.5 text-left">
-              <label className="block text-xs font-bold text-stone-700">Enter Payment UTR / Ref (Optional):</label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="e.g. 432109876543"
-                  value={utrInput}
-                  onChange={(e) => setUtrInput(e.target.value)}
-                  className="flex-1 px-3 py-2 text-xs border border-stone-300 rounded-xl font-mono focus:ring-2 focus:ring-[#7e5222] focus:outline-none"
-                />
+            {/* Manual UTR Section - Gated by timer or toggle to prevent fake spam submissions */}
+            {!showManualUtr && countdown > 0 ? (
+              <div className="pt-2 border-t border-stone-200 text-center space-y-1.5">
+                <p className="text-[11px] text-stone-500">
+                  Please complete the payment in your UPI app. Auto-detection is actively searching...
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowManualUtr(true)}
+                  className="text-xs text-[#7e5222] font-semibold underline hover:text-stone-900 transition-colors"
+                >
+                  Payment completed but auto-verify taking time? Enter 12-digit UTR
+                </button>
               </div>
+            ) : (
+              <form onSubmit={handleManualUtrSubmit} className="pt-3 border-t border-stone-200 space-y-2.5 text-left animate-fadeIn">
+                <div className="flex justify-between items-center">
+                  <label className="block text-xs font-bold text-stone-800">
+                    Enter 12-Digit UPI Transaction ID / UTR:
+                  </label>
+                  <span className="text-[10px] font-mono text-stone-400">12 digits</span>
+                </div>
 
-              <button
-                type="button"
-                onClick={() => finishOrder({ method: 'Google Pay / UPI', status: 'PAID', utr: utrInput })}
-                disabled={isSubmitting}
-                className="w-full py-3.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-2xl text-xs sm:text-sm font-bold shadow-md transition-all flex items-center justify-center gap-2 active:scale-95"
-              >
-                <CheckCircle2 size={16} />
-                <span>I Have Completed Payment (Confirm Order)</span>
-              </button>
-            </div>
-          </div>
-        )}
+                <div className="space-y-1">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={12}
+                    placeholder="e.g. 432109876543"
+                    value={utrInput}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, ''); // numeric only
+                      setUtrInput(val);
+                      if (utrError) setUtrError('');
+                    }}
+                    className={`w-full px-3.5 py-2.5 text-xs sm:text-sm font-mono border rounded-xl focus:outline-none focus:ring-2 ${
+                      utrError ? 'border-red-400 focus:ring-red-400 bg-red-50/30' : 'border-stone-300 focus:ring-[#7e5222]'
+                    }`}
+                  />
+                  {utrError ? (
+                    <p className="text-[11px] text-red-600 flex items-center gap-1 font-medium">
+                      <AlertCircle size={12} />
+                      <span>{utrError}</span>
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-stone-500">
+                      Found in your Google Pay / PhonePe transaction receipt as "UPI Ref No" or "UTR".
+                    </p>
+                  )}
+                </div>
 
-        {/* STEP 2 (Alternate): Bank Transfer Screen */}
-        {step === 'payment' && paymentMethod === 'bank' && (
-          <div className="p-5 sm:p-6 space-y-4">
-            <div className="bg-blue-50/70 p-4 rounded-2xl border border-blue-200 space-y-2 text-xs sm:text-sm">
-              <h4 className="font-bold text-blue-900 flex items-center gap-2">
-                <Building2 className="w-4 h-4 text-blue-700" />
-                <span>Axis Bank Current Account Details</span>
-              </h4>
-              <div className="space-y-1 font-mono text-stone-800 text-xs">
-                <p><span className="text-stone-500">Account Name:</span> {STORE_SETTINGS.merchantName}</p>
-                <p><span className="text-stone-500">Account Number:</span> 921020048940679</p>
-                <p><span className="text-stone-500">IFSC Code:</span> UTIB0000456 (Thanjavur Branch)</p>
-                <p><span className="text-stone-500">UPI ID:</span> {STORE_SETTINGS.upiId}</p>
-              </div>
-            </div>
+                <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-900 leading-snug">
+                  🛡️ <strong>Admin Verification:</strong> Manual UTR entries are cross-verified with bank credit records before manufacturing dispatch.
+                </div>
 
-            <div>
-              <label className="block text-xs font-bold text-stone-700 mb-1">Enter Transaction Reference / UTR Number *</label>
-              <input
-                type="text"
-                placeholder="NEFT / RTGS / IMPS Reference Number"
-                value={utrInput}
-                onChange={(e) => setUtrInput(e.target.value)}
-                className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-stone-300 rounded-xl font-mono focus:ring-2 focus:ring-[#7e5222] focus:outline-none"
-              />
-            </div>
-
-            <button
-              type="button"
-              onClick={() => finishOrder({ method: 'Bank Transfer (NEFT)', status: 'PENDING_VERIFICATION', utr: utrInput })}
-              className="w-full py-3.5 bg-[#7e5222] hover:bg-[#674221] text-white rounded-2xl text-xs sm:text-sm font-bold shadow-md transition-all flex items-center justify-center gap-2"
-            >
-              <CheckCircle2 size={16} />
-              <span>Confirm Bank Transfer Order</span>
-            </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting || utrInput.length < 12}
+                  className={`w-full py-3.5 rounded-2xl text-xs sm:text-sm font-bold shadow-md transition-all flex items-center justify-center gap-2 ${
+                    utrInput.length === 12 && !isSubmitting
+                      ? 'bg-emerald-700 hover:bg-emerald-800 text-white active:scale-95'
+                      : 'bg-stone-300 text-stone-500 cursor-not-allowed'
+                  }`}
+                >
+                  <CheckCircle2 size={16} />
+                  <span>Submit 12-Digit UTR for Verification</span>
+                </button>
+              </form>
+            )}
           </div>
         )}
 
         {/* STEP 3: Order Success Invoice Screen */}
         {step === 'success' && (
           <div className="p-6 sm:p-8 text-center space-y-4">
-            <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-sm">
-              <CheckCircle2 size={36} className="stroke-[2.5]" />
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto shadow-sm ${
+              createdOrder?.status === 'PENDING_VERIFICATION' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-600'
+            }`}>
+              {createdOrder?.status === 'PENDING_VERIFICATION' ? (
+                <Clock size={36} className="stroke-[2.5]" />
+              ) : (
+                <CheckCircle2 size={36} className="stroke-[2.5]" />
+              )}
             </div>
 
             <h3 className="text-xl sm:text-2xl font-black text-stone-900">
-              {createdOrder?.paymentMethod?.includes('Cash') ? 'Order Placed (Cash on Delivery)!' : 'Payment Recorded & Order Confirmed!'}
+              {createdOrder?.status === 'PENDING_VERIFICATION' ? 'Order Queued for UTR Verification' : 'Payment Verified & Order Confirmed!'}
             </h3>
 
-            {(autoVerified || createdOrder?.approvalType?.includes('AUTOMATIC')) && (
+            {(autoVerified || createdOrder?.approvalType?.includes('AUTOMATIC') || createdOrder?.status === 'PAID_APPROVED') ? (
               <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-bold border border-emerald-300 shadow-sm">
                 <ShieldCheck size={14} className="text-emerald-700" />
                 <span>100% Verified Automatically via Bank SMS / UPI</span>
               </div>
+            ) : (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-100 text-amber-900 rounded-full text-xs font-bold border border-amber-300 shadow-sm">
+                <AlertCircle size={14} className="text-amber-700" />
+                <span>Pending Bank Statement Match ({createdOrder?.utr})</span>
+              </div>
             )}
 
             <p className="text-xs sm:text-sm text-stone-600 max-w-sm mx-auto">
-              Thank you, <strong className="text-stone-900">{createdOrder?.customerName}</strong>! Your order has been placed successfully and sent to our Thanjavur manufacturing desk.
+              {createdOrder?.status === 'PENDING_VERIFICATION' ? (
+                <>Thank you, <strong className="text-stone-900">{createdOrder?.customerName}</strong>! Your UTR has been submitted. Our Thanjavur desk will confirm the payment against our bank records shortly.</>
+              ) : (
+                <>Thank you, <strong className="text-stone-900">{createdOrder?.customerName}</strong>! Your payment was verified automatically and sent to our Thanjavur manufacturing desk.</>
+              )}
             </p>
 
             <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200 text-left text-xs space-y-1.5 font-mono">
@@ -677,8 +684,10 @@ export default function CheckoutModal({
                 <span className="font-bold text-stone-900">{createdOrder?.id}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-stone-400">Payment Mode:</span>
-                <span className="font-bold text-emerald-700">{createdOrder?.paymentMethod}</span>
+                <span className="text-stone-400">Payment Status:</span>
+                <span className={`font-bold ${createdOrder?.status === 'PENDING_VERIFICATION' ? 'text-amber-700' : 'text-emerald-700'}`}>
+                  {createdOrder?.status === 'PENDING_VERIFICATION' ? 'PENDING_VERIFICATION' : 'PAID_APPROVED'}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-stone-400">Total Paid/Payable:</span>
@@ -686,7 +695,7 @@ export default function CheckoutModal({
               </div>
               {createdOrder?.utr && (
                 <div className="flex justify-between">
-                  <span className="text-stone-400">Reference/UTR:</span>
+                  <span className="text-stone-400">Reference / UTR:</span>
                   <span className="font-bold text-stone-700">{createdOrder?.utr}</span>
                 </div>
               )}

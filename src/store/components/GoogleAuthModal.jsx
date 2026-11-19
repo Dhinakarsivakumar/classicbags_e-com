@@ -192,6 +192,13 @@ export default function GoogleAuthModal({ isOpen, onClose, onSuccess, redirectMe
             {/* Google Identity Services official button container */}
             <div ref={googleBtnRef} className="flex justify-center my-2" />
 
+            {/* IP Address Note for Google OAuth */}
+            {typeof window !== 'undefined' && /^(\d{1,3}\.){3}\d{1,3}$/.test(window.location.hostname) && (
+              <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-1.5 text-center">
+                ℹ️ Google OAuth avoids IP addresses. Tap <strong>Continue with Google Account</strong> below for instant 1-tap sign-in!
+              </p>
+            )}
+
             {/* Direct Google 1-Tap Fallback Button */}
             <button
               onClick={handleSimulatedLogin}

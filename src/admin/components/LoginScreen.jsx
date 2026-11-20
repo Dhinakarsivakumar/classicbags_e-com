@@ -4,7 +4,8 @@ import { STORE_SETTINGS } from '../../shared/data/initialData';
 import { Storage } from '../../shared/services/storage';
 
 export default function LoginScreen({ settings, onAuthenticated, onClose }) {
-  const [username, setUsername] = useState('admin');
+  const authUser = Storage.getAuthUser();
+  const [username, setUsername] = useState(() => (authUser?.email || 'sdhinakar6@gmail.com'));
   const [credential, setCredential] = useState('');
   const [error, setError] = useState('');
   const [showPass, setShowPass] = useState(false);
@@ -20,7 +21,7 @@ export default function LoginScreen({ settings, onAuthenticated, onClose }) {
       const correctPin = storedSettings?.adminPin || STORE_SETTINGS.adminPin || '1234';
       
       const cleanUser = username.trim().toLowerCase();
-      const isValidUser = cleanUser === 'admin' || cleanUser === 'dhinakar' || cleanUser === '8940679198';
+      const isValidUser = cleanUser === 'sdhinakar6@gmail.com' || cleanUser === 'admin' || cleanUser === 'dhinakar';
       const isValidPass = credential === correctPin || 
                           credential === 'ClassicBags@2026' || 
                           credential === 'dhinakar2026' || 
@@ -30,7 +31,7 @@ export default function LoginScreen({ settings, onAuthenticated, onClose }) {
         Storage.setAdminAuthenticated(true, { username: cleanUser });
         onAuthenticated();
       } else {
-        setError('Invalid credentials. Access restricted to authorized factory owner.');
+        setError('Invalid credentials. Access restricted to authorized factory owner (sdhinakar6@gmail.com).');
         setCredential('');
       }
       setIsLoading(false);
@@ -83,7 +84,7 @@ export default function LoginScreen({ settings, onAuthenticated, onClose }) {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-stone-700 mb-1">
-                  Admin Username / Phone
+                  Admin Gmail / Username
                 </label>
                 <div className="relative">
                   <User className="w-4 h-4 text-stone-400 absolute left-3.5 top-3" />
@@ -91,7 +92,7 @@ export default function LoginScreen({ settings, onAuthenticated, onClose }) {
                     type="text"
                     value={username}
                     onChange={e => setUsername(e.target.value)}
-                    placeholder="admin or 8940679198"
+                    placeholder="sdhinakar6@gmail.com"
                     required
                     className="w-full pl-10 pr-3 py-2.5 text-xs font-medium bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7e5222] focus:bg-white transition-all"
                   />
@@ -152,7 +153,7 @@ export default function LoginScreen({ settings, onAuthenticated, onClose }) {
           {/* Footer note */}
           <div className="bg-stone-50 border-t border-stone-200 px-7 py-3 text-center">
             <p className="text-[11px] text-stone-500">
-              Authorized Owner: S. Dhinakar (+91 89406 79198)
+              Authorized Owner: S. Dhinakar (sdhinakar6@gmail.com)
             </p>
           </div>
         </div>

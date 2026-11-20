@@ -18,10 +18,7 @@ export default function Navbar({
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  const isAdmin = authUser && (
-    Storage.isAdminPhone(authUser.phone) ||
-    (authUser.email && authUser.email.toLowerCase().includes('dhinakar'))
-  );
+  const isAdmin = authUser && Storage.isAdminEmail(authUser.email);
 
   // Close dropdown on click outside
   useEffect(() => {

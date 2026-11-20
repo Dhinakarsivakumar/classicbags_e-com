@@ -31,7 +31,8 @@ export default function CustomerSettingsModal({
     isDefault: false
   });
   const [saveSuccess, setSaveSuccess] = useState('');
-  const isAdminUser = Storage.isAdminPhone(profile?.phone);
+  const authUser = Storage.getAuthUser();
+  const isAdminUser = authUser && Storage.isAdminEmail(authUser.email);
 
   useEffect(() => {
     if (isOpen) {

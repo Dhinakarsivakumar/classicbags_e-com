@@ -13,8 +13,8 @@ const KEYS = {
   AUTH_USER: 'cb_auth_user',
 };
 
-// Owner authorized phone number
-const OWNER_PHONE = '8940679198';
+// Owner authorized email for Admin Control (Strictly restricted to Dhinakar's Gmail)
+const OWNER_EMAIL = 'sdhinakar6@gmail.com';
 
 const getCloudEndpoints = () => {
   const list = [];
@@ -60,11 +60,20 @@ export const Storage = {
     Storage.setAuthUser(null);
   },
 
-  // --- Admin Access Control ---
-  isAdminPhone: (phone) => {
-    if (!phone) return false;
-    const clean = String(phone).replace(/\D/g, '');
-    return clean.endsWith(OWNER_PHONE);
+  // --- Admin Access Control (Strictly Gmail sdhinakar6@gmail.com) ---
+  isAdminEmail: (email) => {
+    if (!email) return false;
+    return String(email).trim().toLowerCase() === OWNER_EMAIL.toLowerCase();
+  },
+
+  isAdminUser: (user) => {
+    if (!user) return false;
+    return Storage.isAdminEmail(user.email);
+  },
+
+  isAdminPhone: () => {
+    // Phone-based admin disabled per owner request; only Gmail auth authorized
+    return false;
   },
 
   isAdminAuthenticated: () => {

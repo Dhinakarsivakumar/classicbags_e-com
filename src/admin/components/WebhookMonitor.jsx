@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Smartphone, ShieldCheck, Key, CheckCircle2, AlertCircle, RefreshCw, Send, Zap } from 'lucide-react';
+import { Smartphone, ShieldCheck, Key, CheckCircle2, AlertCircle, RefreshCw, Send, Zap, Download } from 'lucide-react';
 import { STORE_SETTINGS } from '../../shared/data/initialData';
 import { Storage } from '../../shared/services/storage';
 import { WebhookEngine } from '../../shared/services/webhookEngine';
@@ -57,6 +57,33 @@ export default function WebhookMonitor({ webhookLogs = [] }) {
           </div>
           <ShieldCheck size={28} className="text-emerald-600" />
         </div>
+      </div>
+
+      {/* Official Android APK Download Banner */}
+      <div className="bg-gradient-to-r from-stone-900 via-stone-800 to-[#3d2510] text-white p-5 rounded-3xl border border-amber-900/40 shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center flex-shrink-0">
+            <Smartphone className="w-6 h-6 text-amber-400" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-extrabold text-sm text-white">ClassicBagsListener.apk</span>
+              <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold px-2 py-0.5 rounded-full">v2.0 Offline Sync Ready</span>
+            </div>
+            <p className="text-xs text-stone-300 mt-0.5">
+              Installed on factory Android phone. Captures SMS offline, auto-reconnects, and syncs payments to Cloud Server.
+            </p>
+          </div>
+        </div>
+
+        <a
+          href="/ClassicBagsListener.apk"
+          download="ClassicBagsListener.apk"
+          className="flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-xs rounded-xl shadow-md transition-all flex-shrink-0"
+        >
+          <Download size={15} />
+          <span>Download New APK (29 KB)</span>
+        </a>
       </div>
 
       {/* Technical Spec Cards */}

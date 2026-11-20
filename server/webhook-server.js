@@ -109,12 +109,44 @@ const server = http.createServer((req, res) => {
         receivedPayments.push(paymentRecord);
         savePayments();
 
+        // Auto-Match & Auto-Approve Pending Orders matching this payment
+        let matchedOrder = null;
+        for (let i = 0; i < storedOrders.length; i++) {
+          const ord = storedOrders[i];
+          if (ord && (ord.status === 'PENDING_PAYMENT' || ord.status === 'PENDING_VERIFICATION')) {
+            const ordAmt = parseFloat(ord.totalAmount || ord.amount || 0);
+            const matchesAmt = Math.abs(ordAmt - paymentRecord.amount) < 0.05;
+            const matchesId = paymentRecord.rawNotification && ord.id && paymentRecord.rawNotification.includes(ord.id);
+            
+            if (matchesAmt || matchesId) {
+              storedOrders[i] = {
+                ...ord,
+                status: 'PAID_APPROVED',
+                paymentVerification: 'AUTO_VERIFIED',
+                approvalType: 'AUTOMATIC_SMS_WEBHOOK',
+                utr: paymentRecord.utr,
+                paidAt: paymentRecord.receivedAt,
+                verifiedBy: 'BANK_SMS_AUTO'
+              };
+              matchedOrder = storedOrders[i];
+              paymentRecord.matchedOrderId = ord.id;
+              console.log(`⚡ [AUTO-MATCH SUCCESS] Order ${ord.id} (₹${paymentRecord.amount.toFixed(2)}) auto-approved by incoming SMS!`);
+              break;
+            }
+          }
+        }
+
+        if (matchedOrder) {
+          saveOrdersToDisk();
+        }
+
         console.log(`\n======================================================`);
         console.log(`💰 [PAYMENT VERIFIED & CAPTURED]`);
         console.log(`Amount: ₹${paymentRecord.amount.toFixed(2)}`);
         console.log(`UTR / Ref: ${paymentRecord.utr}`);
         console.log(`Sender: ${paymentRecord.sender}`);
         console.log(`Source App: ${paymentRecord.source}`);
+        console.log(`Matched Order: ${matchedOrder ? matchedOrder.id : 'No pending order match yet'}`);
         console.log(`Time: ${paymentRecord.receivedAt}`);
         console.log(`======================================================\n`);
 

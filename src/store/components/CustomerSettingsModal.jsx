@@ -32,7 +32,7 @@ export default function CustomerSettingsModal({
   });
   const [saveSuccess, setSaveSuccess] = useState('');
   const authUser = Storage.getAuthUser();
-  const isAdminUser = authUser && Storage.isAdminEmail(authUser.email);
+  const isAdminUser = (authUser && Storage.isAdminEmail(authUser.email)) || Storage.isAdminAuthenticated();
 
   useEffect(() => {
     if (isOpen) {

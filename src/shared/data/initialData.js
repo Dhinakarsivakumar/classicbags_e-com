@@ -10,6 +10,8 @@ export const STORE_SETTINGS = {
   webhookEndpoint: 'https://api.classicbags.thanjavur/webhook/gpay',
   webhookSecret: 'sec_cb_8940679198_live_hash',
   adminPin: '1234',
+  adminUsername: 'Admin@CB',
+  adminPassword: 'CB2001#',
   googleClientId: '280576916309-3590bnnhj60kr4n309k7rp0db5utfeoc.apps.googleusercontent.com',
 };
 

@@ -292,15 +292,9 @@ export default function App() {
   }, [products]);
 
   const handleOpenAdmin = useCallback(() => {
-    const currentAuth = authUser || Storage.getAuthUser();
-    if (!currentAuth || !Storage.isAdminEmail(currentAuth.email)) {
-      setAuthRedirectMessage('Admin Access Restricted: Please sign in with the authorized owner Google Account (sdhinakar6@gmail.com).');
-      setIsAuthModalOpen(true);
-      return;
-    }
     setIsSettingsOpen(false);
     setIsAdminOpen(true);
-  }, [authUser]);
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#fbf7ee] text-stone-900 selection:bg-amber-200">

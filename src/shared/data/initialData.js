@@ -24,7 +24,7 @@ export const INITIAL_PRODUCTS = [
   {
     id: 'cb-001',
     name: 'Brown Kraft Shopper Bag',
-    tamilName: 'பிரவுன் கிராஃப்ட் ஷாப்பர் பேக் (100 Bags = ₹1 Test Offer)',
+    tamilName: 'பிரவுன் கிராஃப்ட் ஷாப்பர் பேக்',
     category: 'kraft',
     pricePerUnit: 0.01,
     minOrderQty: 100,
@@ -33,12 +33,7 @@ export const INITIAL_PRODUCTS = [
     sizes: ['8×10×3.5 in', '10×14×4 in', '12×16×5 in'],
     handles: ['Twisted Paper', 'Flat Tape'],
     description: '100% biodegradable virgin brown kraft with reinforced twisted handle. Special bulk offer: 100 bags for just ₹1 (₹0.01/bag) to test live dynamic UPI QR payments.',
-    images: [
-      'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1530595467537-0b5996c41f2d?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=800&q=80'
-    ],
+    images: [],
     tierPricing: [
       { min: 100, price: 0.01 },
       { min: 500, price: 0.01 },
@@ -62,12 +57,7 @@ export const INITIAL_PRODUCTS = [
     sizes: ['7×9×3 in', '10×13×4 in', '14×18×5 in'],
     handles: ['Braided Cotton Rope', 'Twisted White Paper'],
     description: 'Crisp bright-white kraft with luxury matte finish. Tailored for jewelry, designer clothing boutiques, and cosmetics brands.',
-    images: [
-      'https://images.unsplash.com/photo-1591561954557-26941169b49e?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1534452203293-494d7ddbf7e0?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=800&q=80'
-    ],
+    images: [],
     tierPricing: [
       { min: 100, price: 7.20 },
       { min: 500, price: 6.40 },
@@ -91,11 +81,7 @@ export const INITIAL_PRODUCTS = [
     sizes: ['6×8×3 in', '8×11×4 in', '10×12×5 in'],
     handles: ['Pinch Bottom', 'Flat Handle'],
     description: 'Food-grade greaseproof certified kraft for hot samosas, pastries, sweet stalls, and bakery takeout in Thanjavur.',
-    images: [
-      'https://images.unsplash.com/photo-1589365278144-c9e705f843ba?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1513201099705-a9746e1e201f?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80'
-    ],
+    images: [],
     tierPricing: [
       { min: 200, price: 3.80 },
       { min: 1000, price: 3.20 },
@@ -119,11 +105,7 @@ export const INITIAL_PRODUCTS = [
     sizes: ['10×12×4 in', '12×15×5 in', '14×18×6 in'],
     handles: ['Silk Ribbon', 'Twisted Kraft', 'Rope'],
     description: 'Precision multi-color screen printing with your shop logo and contact details. Upload logo for instant digital mockup.',
-    images: [
-      'https://images.unsplash.com/photo-1572635196237-14b3f281503f?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?auto=format&fit=crop&w=800&q=80'
-    ],
+    images: [],
     tierPricing: [
       { min: 500, price: 8.50 },
       { min: 2000, price: 7.20 },

@@ -43,22 +43,13 @@ export default function App() {
   useEffect(() => {
     const stored = Storage.getProducts();
     if (stored && stored.length > 0) {
-      // Ensure cb-001 is updated with 100 Bags = ₹1.00 (₹0.01 per bag)
-      const synced = stored.map(p => p.id === 'cb-001' ? {
+      // Ensure dummy Unsplash photos are stripped so owner can add original photos
+      const cleaned = stored.map(p => ({
         ...p,
-        pricePerUnit: 0.01,
-        minOrderQty: 100,
-        name: 'Brown Kraft Shopper Bag',
-        tamilName: 'பிரவுன் கிராஃப்ட் ஷாப்பர் பேக் (100 Bags = ₹1 Test Offer)',
-        tierPricing: [
-          { min: 100, price: 0.01 },
-          { min: 500, price: 0.01 },
-          { min: 2000, price: 0.01 },
-          { min: 5000, price: 0.01 }
-        ]
-      } : p);
-      Storage.saveProducts(synced);
-      setProducts(synced);
+        images: (p.images || []).filter(img => !img.includes('images.unsplash.com'))
+      }));
+      Storage.saveProducts(cleaned);
+      setProducts(cleaned);
     } else {
       Storage.saveProducts(INITIAL_PRODUCTS);
       setProducts(INITIAL_PRODUCTS);
@@ -120,7 +111,7 @@ export default function App() {
         id: `cart-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         productId: product.id,
         name: product.name,
-        image: product.images[0],
+        image: (product.images && product.images[0]) || '',
         size: product.sizes[0],
         gsm: product.gsm,
         handle: product.handles[0],

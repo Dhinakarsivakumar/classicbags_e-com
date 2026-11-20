@@ -62,12 +62,16 @@ export default function CartDrawer({ items, onClose, onUpdateQty, onRemove, getU
                   >
                     <div className="flex gap-3">
                       {/* Image */}
-                      <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-stone-200">
-                        <img
-                          src={item.image}
-                          alt={item.name}
-                          className="w-full h-full object-cover"
-                        />
+                      <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-stone-100 border border-stone-200 flex items-center justify-center">
+                        {item.image ? (
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <ShoppingBag className="w-7 h-7 text-stone-400" />
+                        )}
                       </div>
 
                       <div className="flex-1 min-w-0">

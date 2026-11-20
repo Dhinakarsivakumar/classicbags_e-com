@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Star, ShoppingCart, SlidersHorizontal, Image as ImageIcon, Heart } from 'lucide-react';
+import { Star, ShoppingCart, SlidersHorizontal, Image as ImageIcon, Heart, ShoppingBag } from 'lucide-react';
 
 export default function ProductCard({ 
   product, 
@@ -37,12 +37,24 @@ export default function ProductCard({
         onMouseLeave={() => setHoverIndex(0)}
         className="relative aspect-[4/5] sm:aspect-square overflow-hidden cursor-pointer bg-stone-100"
       >
-        <img
-          src={currentImage}
-          alt={name}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          loading="lazy"
-        />
+        {currentImage ? (
+          <img
+            src={currentImage}
+            alt={name}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            loading="lazy"
+          />
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-amber-50/70 via-stone-100 to-amber-100/50 p-6 text-center select-none">
+            <div className="w-16 h-16 rounded-2xl bg-white shadow-md border border-amber-200 flex items-center justify-center text-[#7e5222] mb-3 group-hover:scale-110 transition-transform duration-300">
+              <ShoppingBag className="w-8 h-8 text-[#7e5222]" />
+            </div>
+            <span className="text-xs font-bold text-stone-800 tracking-tight">{name}</span>
+            <span className="text-[10px] text-amber-800/80 font-medium bg-amber-100/70 px-2.5 py-0.5 rounded-full mt-1.5 border border-amber-200">
+              📷 Photo ready to upload
+            </span>
+          </div>
+        )}
 
         {/* Gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />

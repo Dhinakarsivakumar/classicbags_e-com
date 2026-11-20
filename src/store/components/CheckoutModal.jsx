@@ -20,6 +20,7 @@ export default function CheckoutModal({
   const [phone, setPhone] = useState('');
   const [city, setCity] = useState('');
   const [address, setAddress] = useState('');
+  const [saveAddress, setSaveAddress] = useState(true);
   const [savedAddresses, setSavedAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState('');
   const [step, setStep] = useState('details'); // 'details' | 'payment' | 'success'
@@ -115,6 +116,27 @@ export default function CheckoutModal({
       return;
     }
     if (!customerName || !phone) return;
+
+    // Save delivery address for future orders if selected
+    if (saveAddress && address.trim()) {
+      try {
+        const addresses = Storage.getAddresses() || [];
+        const newAddr = {
+          id: selectedAddressId || `addr_${Date.now()}`,
+          title: city.trim() ? `${city.trim()} Delivery` : 'Delivery Address',
+          fullName: customerName,
+          phone: phone,
+          street: address.trim(),
+          city: city.trim() || 'Thanjavur',
+          isDefault: true
+        };
+        const other = addresses.filter(a => a.street.toLowerCase() !== address.trim().toLowerCase());
+        Storage.saveAddresses([newAddr, ...other]);
+        setSavedAddresses([newAddr, ...other]);
+      } catch (err) {
+        console.warn('Address saving error:', err);
+      }
+    }
 
     // Reset payment verification state
     setCountdown(60);
@@ -493,6 +515,18 @@ export default function CheckoutModal({
                 onChange={(e) => setAddress(e.target.value)}
                 className="w-full px-3.5 py-2 text-xs sm:text-sm border border-stone-300 rounded-xl focus:ring-2 focus:ring-[#7e5222] focus:outline-none"
               />
+              <div className="flex items-center gap-2 mt-2">
+                <input
+                  type="checkbox"
+                  id="cb_save_address"
+                  checked={saveAddress}
+                  onChange={(e) => setSaveAddress(e.target.checked)}
+                  className="w-4 h-4 text-[#7e5222] rounded border-stone-300 focus:ring-[#7e5222] accent-[#7e5222] cursor-pointer"
+                />
+                <label htmlFor="cb_save_address" className="text-xs font-semibold text-stone-700 cursor-pointer select-none">
+                  Save this delivery address for future orders
+                </label>
+              </div>
             </div>
 
             {/* Payment Method Display - Exclusively Instant Online UPI */}

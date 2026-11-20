@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { X, Upload, ShoppingCart, Minus, Plus, Image as ImageIcon, ChevronLeft, ChevronRight, Check } from 'lucide-react';
+import { X, Upload, ShoppingCart, Minus, Plus, Image as ImageIcon, ChevronLeft, ChevronRight, Check, ShoppingBag } from 'lucide-react';
 
 export default function ProductCustomizerModal({ product, onClose, onAddToCart }) {
   const [selectedSize, setSelectedSize] = useState(product.sizes[0]);
@@ -14,9 +14,9 @@ export default function ProductCustomizerModal({ product, onClose, onAddToCart }
 
   const images = (product.images && product.images.length > 0) 
     ? product.images 
-    : ['https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=800&q=80'];
+    : [];
 
-  const currentImage = images[activeImageIndex] || images[0];
+  const currentImage = images[activeImageIndex] || images[0] || '';
 
   const gsmOptions = [90, 120, 150, 180];
   const qtyPresets = product.minOrderQty === 1 ? [1, 5, 25, 50, 100] : [100, 500, 1000, 2500, 5000];
@@ -96,11 +96,23 @@ export default function ProductCustomizerModal({ product, onClose, onAddToCart }
               
               {/* Main Preview Container with 4:5 aspect ratio */}
               <div className="relative w-full aspect-[4/5] rounded-2xl overflow-hidden bg-white shadow-inner border border-stone-200 group">
-                <img
-                  src={currentImage}
-                  alt={`${product.name} view ${activeImageIndex + 1}`}
-                  className="w-full h-full object-cover transition-all duration-300"
-                />
+                {currentImage ? (
+                  <img
+                    src={currentImage}
+                    alt={`${product.name} view ${activeImageIndex + 1}`}
+                    className="w-full h-full object-cover transition-all duration-300"
+                  />
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-amber-50 to-stone-100 p-8 text-center select-none">
+                    <div className="w-20 h-20 rounded-3xl bg-white shadow-md border border-amber-200 flex items-center justify-center text-[#7e5222] mb-3">
+                      <ShoppingBag className="w-10 h-10 text-[#7e5222]" />
+                    </div>
+                    <span className="text-sm font-bold text-stone-800">{product.name}</span>
+                    <span className="text-xs text-amber-800 font-medium bg-amber-100/80 px-3 py-1 rounded-full mt-2 border border-amber-200">
+                      📷 Upload original factory photos in Admin
+                    </span>
+                  </div>
+                )}
 
                 {/* Left / Right Carousel Controls if multiple images */}
                 {images.length > 1 && (

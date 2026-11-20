@@ -59,12 +59,16 @@ export default function WishlistDrawer({
                   className="group relative bg-[#fdfbf7] border border-stone-200 rounded-2xl p-3.5 flex gap-3.5 hover:shadow-md transition-all"
                 >
                   {/* Thumbnail (4:5 Aspect Ratio) */}
-                  <div className="w-20 h-24 rounded-xl overflow-hidden bg-stone-100 flex-shrink-0 border border-stone-200">
-                    <img
-                      src={item.images?.[0] || item.image}
-                      alt={item.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
+                  <div className="w-20 h-24 rounded-xl overflow-hidden bg-stone-100 flex-shrink-0 border border-stone-200 flex items-center justify-center">
+                    {(item.images?.[0] || item.image) ? (
+                      <img
+                        src={item.images?.[0] || item.image}
+                        alt={item.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    ) : (
+                      <ShoppingBag className="w-8 h-8 text-stone-400" />
+                    )}
                   </div>
 
                   {/* Info */}

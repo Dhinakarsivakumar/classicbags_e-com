@@ -14,7 +14,8 @@ import {
   Camera,
   Check,
   Link as LinkIcon,
-  RefreshCw
+  RefreshCw,
+  ShoppingBag
 } from 'lucide-react';
 import { CATEGORIES } from '../../shared/data/initialData';
 
@@ -348,13 +349,16 @@ export default function ProductManager({ products, onUpdateProducts }) {
               {filteredProducts.map((p) => (
                 <tr key={p.id} className="hover:bg-slate-50/80 transition-colors">
                   <td className="py-3 px-4">
-                    <div className="w-12 h-14 rounded-lg overflow-hidden border border-slate-200 bg-slate-100">
-                      <img
-                        src={p.images?.[0] || 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=400&q=80'}
-                        alt={p.name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=400&q=80'; }}
-                      />
+                    <div className="w-12 h-14 rounded-lg overflow-hidden border border-slate-200 bg-slate-100 flex items-center justify-center">
+                      {p.images && p.images[0] ? (
+                        <img
+                          src={p.images[0]}
+                          alt={p.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <ShoppingBag size={20} className="text-slate-400" />
+                      )}
                     </div>
                   </td>
                   <td className="py-3 px-4">

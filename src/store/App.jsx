@@ -280,31 +280,31 @@ export default function App() {
 
   // Filter and sort products
   const filteredProducts = useMemo(() => {
-    let result = products;
+    let result = (products && Array.isArray(products)) ? products.filter(Boolean) : [];
 
     // Filter by Category
     if (selectedCategory !== 'all') {
-      result = result.filter(p => p.category === selectedCategory);
+      result = result.filter(p => p && p.category === selectedCategory);
     }
 
     // Filter by Search Query (Name, Tamil name, GSM, Size, Material)
-    if (searchQuery.trim()) {
+    if (searchQuery && searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       result = result.filter(p => 
-        p.name.toLowerCase().includes(q) ||
+        (p.name && p.name.toLowerCase().includes(q)) ||
         (p.tamilName && p.tamilName.includes(q)) ||
         (p.description && p.description.toLowerCase().includes(q)) ||
-        `${p.gsm} gsm`.includes(q)
+        `${p.gsm || ''} gsm`.includes(q)
       );
     }
 
     // Sort By
     if (sortBy === 'price-low') {
-      result = [...result].sort((a, b) => a.pricePerUnit - b.pricePerUnit);
+      result = [...result].sort((a, b) => (Number(a.pricePerUnit) || 0) - (Number(b.pricePerUnit) || 0));
     } else if (sortBy === 'price-high') {
-      result = [...result].sort((a, b) => b.pricePerUnit - a.pricePerUnit);
+      result = [...result].sort((a, b) => (Number(b.pricePerUnit) || 0) - (Number(a.pricePerUnit) || 0));
     } else if (sortBy === 'rating') {
-      result = [...result].sort((a, b) => b.rating - a.rating);
+      result = [...result].sort((a, b) => (Number(b.rating) || 0) - (Number(a.rating) || 0));
     }
 
     return result;
@@ -312,7 +312,8 @@ export default function App() {
 
   // Open customizer directly for logo customization
   const handleOpenCustomLogo = useCallback(() => {
-    const customProduct = products.find(p => p.category === 'custom') || products[0];
+    const list = (products && Array.isArray(products)) ? products.filter(Boolean) : [];
+    const customProduct = list.find(p => p.category === 'custom') || list[0];
     if (customProduct) {
       setSelectedProduct(customProduct);
     }

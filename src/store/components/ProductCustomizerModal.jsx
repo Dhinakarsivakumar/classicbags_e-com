@@ -212,7 +212,7 @@ export default function ProductCustomizerModal({ product, onClose, onAddToCart }
                   Bag Size
                 </label>
                 <div className="flex flex-wrap gap-2">
-                  {product.sizes.map(size => (
+                  {(product.sizes || ['10×14×4 in']).map(size => (
                     <button
                       key={size}
                       onClick={() => setSelectedSize(size)}
@@ -256,7 +256,7 @@ export default function ProductCustomizerModal({ product, onClose, onAddToCart }
                   Handle Style
                 </label>
                 <div className="flex flex-wrap gap-2">
-                  {product.handles.map(handle => (
+                  {(product.handles || ['Twisted Paper']).map(handle => (
                     <button
                       key={handle}
                       onClick={() => setSelectedHandle(handle)}

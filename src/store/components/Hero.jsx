@@ -6,13 +6,17 @@ export default function Hero({ products = [], onCustomizeClick, settings }) {
   const customBanner = settings?.heroBanner;
   const hasCustomBanner = Boolean(customBanner?.image);
 
-  const featuredProduct = products.find(p => p.featured) || products[0];
+  const featuredProduct = (products && Array.isArray(products)) 
+    ? (products.find(p => p && p.featured) || products[0] || null)
+    : null;
 
   const displayImage = hasCustomBanner ? customBanner.image : featuredProduct?.images?.[0];
   const displayTitle = hasCustomBanner ? (customBanner.title || 'Custom Branded Paper Bags') : (featuredProduct?.name || 'Classic Paper Bags');
   const displayTamilTitle = hasCustomBanner ? (customBanner.tamilTitle || 'கஸ்டம் பிராண்டட் பேப்பர் பைகள்') : (featuredProduct?.tamilName || 'தரமான பேப்பர் பைகள்');
   const displayBadge = hasCustomBanner ? (customBanner.badge || '★ Factory Special / Custom Order') : '★ Wholesale Top Seller';
-  const displayPrice = hasCustomBanner ? (customBanner.price || '2.30') : (featuredProduct?.pricePerUnit?.toFixed(2) || '2.30');
+  const displayPrice = hasCustomBanner 
+    ? (customBanner.price || '2.30') 
+    : (featuredProduct ? Number(featuredProduct.pricePerUnit || 2.30).toFixed(2) : '2.30');
   const hasDisplayData = Boolean(displayImage || featuredProduct);
 
   return (

@@ -118,19 +118,25 @@ export default function ProductCard({
             <div className="text-[11px] text-stone-500 font-medium mb-1.5 flex justify-between">
               <span>Bulk Tier Pricing:</span>
               <span className="text-[#7e5222] font-semibold">
-                {tierPricing && tierPricing.length > 0 
-                  ? `From ₹${tierPricing[tierPricing.length - 1].price.toFixed(2)}`
-                  : `₹${(product.pricePerUnit || 0).toFixed(2)}`}
+                {tierPricing && Array.isArray(tierPricing) && tierPricing.length > 0 
+                  ? `From ₹${Number(tierPricing[tierPricing.length - 1]?.price || 0).toFixed(2)}`
+                  : `₹${Number(product.pricePerUnit || 0).toFixed(2)}`}
               </span>
             </div>
-            <div className="grid grid-cols-4 gap-1 text-center">
-              {tierPricing.map((tier, idx) => (
-                <div key={idx} className="bg-white rounded-lg py-1 px-0.5 border border-stone-200/60">
-                  <div className="text-[10px] text-stone-400">{tier.min}+</div>
-                  <div className="text-xs font-bold text-stone-800">₹{tier.price.toFixed(2)}</div>
-                </div>
-              ))}
-            </div>
+            {tierPricing && Array.isArray(tierPricing) && tierPricing.length > 0 ? (
+              <div className="grid grid-cols-4 gap-1 text-center">
+                {tierPricing.map((tier, idx) => (
+                  <div key={idx} className="bg-white rounded-lg py-1 px-0.5 border border-stone-200/60">
+                    <div className="text-[10px] text-stone-400">{tier?.min || 100}+</div>
+                    <div className="text-xs font-bold text-stone-800">₹{Number(tier?.price || 0).toFixed(2)}</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-1 text-stone-400 text-[10px]">
+                Standard Wholesale Pricing • ₹{Number(product.pricePerUnit || 0).toFixed(2)} / bag
+              </div>
+            )}
           </div>
         </div>
 

@@ -299,16 +299,17 @@ export default function CustomerSettingsModal({
             )}
           </nav>
 
-          {/* Helpline Footer */}
+          {/* Customer Service & WhatsApp Helpline */}
           <div className="p-4 border-t border-stone-200 bg-white/60">
-            <p className="text-[11px] text-stone-500 font-semibold mb-1">Factory Order Desk</p>
+            <p className="text-[11px] text-stone-500 font-bold uppercase tracking-wider mb-1">Customer Service &amp; WhatsApp</p>
             <a 
-              href={`https://wa.me/${STORE_SETTINGS.whatsapp}`}
+              href={`https://wa.me/${STORE_SETTINGS.whatsapp || '918940679198'}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-[#7e5222] hover:underline font-bold flex items-center gap-1.5"
+              className="text-xs text-[#7e5222] hover:text-green-700 hover:underline font-extrabold flex items-center gap-1.5"
             >
-              <span>+91 {STORE_SETTINGS.phone}</span>
+              <span className="text-sm">💬</span>
+              <span>{STORE_SETTINGS.phone} (WhatsApp)</span>
             </a>
           </div>
         </div>

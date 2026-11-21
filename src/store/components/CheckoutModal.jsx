@@ -344,7 +344,10 @@ export default function CheckoutModal({
         handle: item.handle,
         unitPrice: item.unitPrice,
         price: item.unitPrice,
-        totalPrice: item.unitPrice * item.qty
+        totalPrice: item.unitPrice * item.qty,
+        logoFile: item.logoFile || item.customLogo || null,
+        logoPreview: item.logoPreview || null,
+        printNotes: item.printNotes || ''
       })),
       totalAmount: parseFloat(orderAmount),
       amount: parseFloat(orderAmount),

@@ -33,6 +33,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('featured');
   const [toast, setToast] = useState('');
+  const [settings, setSettings] = useState(() => Storage.getSettings() || STORE_SETTINGS);
 
   const showToast = (msg) => {
     setToast(msg);
@@ -75,6 +76,7 @@ export default function App() {
       if (key === 'cb_products' && newValue !== undefined && newValue !== null) setProducts(newValue);
       if (key === 'cb_orders' && newValue) setOrders(newValue);
       if (key === 'cb_wishlist' && newValue) setWishlist(newValue);
+      if (key === 'cb_settings' && newValue) setSettings(newValue);
     });
 
     const handleAuthChange = (e) => {
@@ -340,6 +342,7 @@ export default function App() {
       {/* Hero Section */}
       <Hero 
         products={products} 
+        settings={settings}
         onCustomizeClick={handleOpenCustomLogo} 
       />
 

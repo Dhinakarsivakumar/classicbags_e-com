@@ -41,7 +41,10 @@ export default function Footer({ onOpenAdmin }) {
           </p>
           <p className="flex items-center gap-2 mt-3 text-stone-300">
             <Phone size={14} className="text-amber-500" />
-            <a href={`tel:${STORE_SETTINGS.phone}`} className="hover:text-white transition-colors">{STORE_SETTINGS.phone}</a>
+            <a href={`https://wa.me/${STORE_SETTINGS.whatsapp || '918940679198'}`} target="_blank" rel="noopener noreferrer" className="hover:text-emerald-400 transition-colors flex items-center gap-1.5">
+              <span>{STORE_SETTINGS.phone}</span>
+              <span className="text-[10px] bg-emerald-900/60 text-emerald-300 font-bold px-1.5 py-0.5 rounded border border-emerald-700/50">WhatsApp</span>
+            </a>
           </p>
           <p className="flex items-center gap-2 mt-2 text-stone-300">
             <Mail size={14} className="text-amber-500" />

@@ -2,8 +2,18 @@ import React from 'react';
 import { ArrowRight, MessageCircle, Sparkles, SlidersHorizontal, ShieldCheck } from 'lucide-react';
 import { STORE_SETTINGS } from '../../shared/data/initialData';
 
-export default function Hero({ products, onCustomizeClick }) {
+export default function Hero({ products = [], onCustomizeClick, settings }) {
+  const customBanner = settings?.heroBanner;
+  const hasCustomBanner = Boolean(customBanner?.image);
+
   const featuredProduct = products.find(p => p.featured) || products[0];
+
+  const displayImage = hasCustomBanner ? customBanner.image : featuredProduct?.images?.[0];
+  const displayTitle = hasCustomBanner ? (customBanner.title || 'Custom Branded Paper Bags') : (featuredProduct?.name || 'Classic Paper Bags');
+  const displayTamilTitle = hasCustomBanner ? (customBanner.tamilTitle || 'கஸ்டம் பிராண்டட் பேப்பர் பைகள்') : (featuredProduct?.tamilName || 'தரமான பேப்பர் பைகள்');
+  const displayBadge = hasCustomBanner ? (customBanner.badge || '★ Factory Special / Custom Order') : '★ Wholesale Top Seller';
+  const displayPrice = hasCustomBanner ? (customBanner.price || '2.30') : (featuredProduct?.pricePerUnit?.toFixed(2) || '2.30');
+  const hasDisplayData = Boolean(displayImage || featuredProduct);
 
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-[#fbf7ee] via-[#f4ebd4] to-[#fbf7ee]">
@@ -97,10 +107,10 @@ export default function Hero({ products, onCustomizeClick }) {
             <div className="relative mx-auto max-w-md lg:max-w-none">
               <div className="relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white bg-white">
                 <div className="aspect-[4/3] overflow-hidden bg-stone-100 flex items-center justify-center">
-                  {featuredProduct?.images?.[0] ? (
+                  {displayImage ? (
                     <img
-                      src={featuredProduct.images[0]}
-                      alt={featuredProduct.name || 'Paper Bag'}
+                      src={displayImage}
+                      alt={displayTitle || 'Featured Paper Bag'}
                       className="w-full h-full object-cover"
                     />
                   ) : (
@@ -114,18 +124,18 @@ export default function Hero({ products, onCustomizeClick }) {
                     </div>
                   )}
                 </div>
-                {featuredProduct && (
+                {hasDisplayData && (
                   <div className="p-6 bg-gradient-to-t from-stone-900 via-stone-900/90 to-transparent absolute inset-0 flex flex-col justify-end text-white">
                     <div className="inline-block bg-amber-500 text-stone-900 text-xs font-bold px-3 py-1 rounded-full mb-2 self-start">
-                      ★ Wholesale Top Seller
+                      {displayBadge}
                     </div>
-                    <h3 className="text-xl font-bold">{featuredProduct?.name}</h3>
-                    <p className="text-xs text-amber-200 font-medium mb-3">{featuredProduct?.tamilName}</p>
+                    <h3 className="text-xl font-bold">{displayTitle}</h3>
+                    <p className="text-xs text-amber-200 font-medium mb-3">{displayTamilTitle}</p>
                     <div className="flex items-center justify-between pt-2 border-t border-white/20">
                       <div>
                         <span className="text-xs text-stone-300">Wholesale from</span>
                         <p className="text-2xl font-extrabold text-amber-400">
-                          ₹{featuredProduct?.pricePerUnit?.toFixed(2)} <span className="text-xs text-white font-normal">/ unit</span>
+                          ₹{displayPrice} <span className="text-xs text-white font-normal">/ unit</span>
                         </p>
                       </div>
                       <button

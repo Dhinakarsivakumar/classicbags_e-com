@@ -197,29 +197,43 @@ export default function App() {
       return;
     }
     setCartItems(prev =>
-      prev.map(item => item.id === cartId ? { ...item, qty: newQty } : item)
+      prev.map(item => {
+        if (item.id === cartId) {
+          const unitPrice = getUnitPrice(item.tierPricing, newQty, item.unitPrice || item.price);
+          return {
+            ...item,
+            qty: newQty,
+            unitPrice,
+            price: unitPrice,
+            totalPrice: unitPrice * newQty
+          };
+        }
+        return item;
+      })
     );
-  }, []);
+  }, [getUnitPrice]);
 
   // Remove from cart
   const handleRemoveItem = useCallback((cartId) => {
     setCartItems(prev => prev.filter(item => item.id !== cartId));
   }, []);
 
-  // Calculate unit price based on tier pricing
-  const getUnitPrice = useCallback((tierPricing, qty) => {
-    if (!tierPricing || tierPricing.length === 0) return 0;
-    let price = tierPricing[0].price;
-    for (const tier of tierPricing) {
-      if (qty >= tier.min) price = tier.price;
+  // Calculate unit price based on tier pricing with robust fallback
+  const getUnitPrice = useCallback((tierPricing, qty, fallbackPrice = 1) => {
+    if (tierPricing && tierPricing.length > 0) {
+      let price = tierPricing[0].price;
+      for (const tier of tierPricing) {
+        if (qty >= tier.min) price = tier.price;
+      }
+      return price;
     }
-    return price;
+    return (typeof fallbackPrice === 'number' && !isNaN(fallbackPrice) && fallbackPrice > 0) ? fallbackPrice : 1;
   }, []);
 
   // Cart subtotal
   const cartSubtotal = cartItems.reduce((sum, item) => {
-    const unitPrice = getUnitPrice(item.tierPricing, item.qty);
-    return sum + unitPrice * item.qty;
+    const unitPrice = getUnitPrice(item.tierPricing, item.qty, item.unitPrice || item.price);
+    return sum + (unitPrice * item.qty);
   }, 0);
 
   const cartItemCount = cartItems.reduce((sum, item) => sum + item.qty, 0);
@@ -545,6 +559,7 @@ export default function App() {
         <CheckoutModal
           isOpen={true}
           cartItems={cartItems}
+          subtotal={cartSubtotal}
           onClose={() => setIsCheckoutOpen(false)}
           onOrderCompleted={handleOrderSuccess}
           onOrderSuccess={handleOrderSuccess}

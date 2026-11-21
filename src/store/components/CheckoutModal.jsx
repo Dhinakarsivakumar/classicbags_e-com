@@ -11,6 +11,7 @@ export default function CheckoutModal({
   isOpen = true, 
   onClose, 
   cartItems = [], 
+  subtotal,
   onOrderCompleted, 
   onOrderSuccess,
   authUser,
@@ -71,9 +72,8 @@ export default function CheckoutModal({
 
   if (!isOpen) return null;
 
-  // Base total with robust fallback
+  // Calculate price dynamically prioritizing tier pricing, subtotal, and unitPrice
   const getItemPrice = (item) => {
-    if (typeof item.unitPrice === 'number' && !isNaN(item.unitPrice)) return item.unitPrice;
     if (item.tierPricing && item.tierPricing.length > 0) {
       let price = item.tierPricing[0].price;
       for (const tier of item.tierPricing) {
@@ -81,11 +81,16 @@ export default function CheckoutModal({
       }
       return price;
     }
-    return item.price || 1;
+    if (typeof item.unitPrice === 'number' && !isNaN(item.unitPrice) && item.unitPrice > 0) return item.unitPrice;
+    if (typeof item.price === 'number' && !isNaN(item.price) && item.price > 0) return item.price;
+    return 1;
   };
 
-  const baseSubtotal = cartItems.reduce((acc, item) => acc + (getItemPrice(item) * item.qty), 0);
-  const orderAmount = baseSubtotal.toFixed(2);
+  const calculatedSubtotal = cartItems.reduce((acc, item) => acc + (getItemPrice(item) * item.qty), 0);
+  const finalSubtotal = (typeof subtotal === 'number' && !isNaN(subtotal) && subtotal > 0)
+    ? subtotal
+    : calculatedSubtotal;
+  const orderAmount = finalSubtotal.toFixed(2);
 
   // Deep Link for Google Pay UPI Intent
   const upiIntentUrl = `upi://pay?pa=${STORE_SETTINGS.upiId}&pn=${encodeURIComponent(STORE_SETTINGS.merchantName)}&am=${orderAmount}&cu=INR&tn=${orderId}`;
@@ -336,19 +341,22 @@ export default function CheckoutModal({
       phone,
       city,
       address,
-      items: cartItems.map(item => ({
-        name: item.name,
-        qty: item.qty,
-        size: item.size,
-        gsm: item.gsm,
-        handle: item.handle,
-        unitPrice: item.unitPrice,
-        price: item.unitPrice,
-        totalPrice: item.unitPrice * item.qty,
-        logoFile: item.logoFile || item.customLogo || null,
-        logoPreview: item.logoPreview || null,
-        printNotes: item.printNotes || ''
-      })),
+      items: cartItems.map(item => {
+        const uPrice = getItemPrice(item);
+        return {
+          name: item.name,
+          qty: item.qty,
+          size: item.size,
+          gsm: item.gsm,
+          handle: item.handle,
+          unitPrice: uPrice,
+          price: uPrice,
+          totalPrice: uPrice * item.qty,
+          logoFile: item.logoFile || item.customLogo || null,
+          logoPreview: item.logoPreview || null,
+          printNotes: item.printNotes || ''
+        };
+      }),
       totalAmount: parseFloat(orderAmount),
       amount: parseFloat(orderAmount),
       status: status || 'PAID',

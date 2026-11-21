@@ -96,34 +96,47 @@ export default function Hero({ products, onCustomizeClick }) {
           <div className="relative">
             <div className="relative mx-auto max-w-md lg:max-w-none">
               <div className="relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white bg-white">
-                <div className="aspect-[4/3] overflow-hidden">
-                  <img
-                    src={featuredProduct?.images?.[0] || 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=800&q=80'}
-                    alt="Featured Paper Bag"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="p-6 bg-gradient-to-t from-stone-900 via-stone-900/90 to-transparent absolute inset-0 flex flex-col justify-end text-white">
-                  <div className="inline-block bg-amber-500 text-stone-900 text-xs font-bold px-3 py-1 rounded-full mb-2 self-start">
-                    ★ Wholesale Top Seller
-                  </div>
-                  <h3 className="text-xl font-bold">{featuredProduct?.name}</h3>
-                  <p className="text-xs text-amber-200 font-medium mb-3">{featuredProduct?.tamilName}</p>
-                  <div className="flex items-center justify-between pt-2 border-t border-white/20">
-                    <div>
-                      <span className="text-xs text-stone-300">Wholesale from</span>
-                      <p className="text-2xl font-extrabold text-amber-400">
-                        ₹{featuredProduct?.pricePerUnit?.toFixed(2)} <span className="text-xs text-white font-normal">/ unit</span>
-                      </p>
+                <div className="aspect-[4/3] overflow-hidden bg-stone-100 flex items-center justify-center">
+                  {featuredProduct?.images?.[0] ? (
+                    <img
+                      src={featuredProduct.images[0]}
+                      alt={featuredProduct.name || 'Paper Bag'}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-amber-100 via-[#f8f3e8] to-amber-50 text-stone-700 p-8 text-center">
+                      <div className="w-20 h-20 rounded-3xl bg-amber-200/60 flex items-center justify-center text-4xl mb-3 shadow-inner">
+                        🛍️
+                      </div>
+                      <h4 className="font-extrabold text-stone-800 text-lg">Classic Bags Thanjavur</h4>
+                      <p className="text-xs text-[#7e5222] font-semibold mt-1">Direct Factory Paper Bag Manufacturer</p>
+                      <p className="text-[11px] text-stone-500 mt-2 max-w-xs">Wholesale 100% Biodegradable Kraft Packaging</p>
                     </div>
-                    <button
-                      onClick={() => onCustomizeClick ? onCustomizeClick() : null}
-                      className="px-4 py-2 bg-white text-[#7e5222] rounded-xl text-xs font-bold hover:bg-amber-50 transition-colors shadow"
-                    >
-                      Customize Now ➔
-                    </button>
-                  </div>
+                  )}
                 </div>
+                {featuredProduct && (
+                  <div className="p-6 bg-gradient-to-t from-stone-900 via-stone-900/90 to-transparent absolute inset-0 flex flex-col justify-end text-white">
+                    <div className="inline-block bg-amber-500 text-stone-900 text-xs font-bold px-3 py-1 rounded-full mb-2 self-start">
+                      ★ Wholesale Top Seller
+                    </div>
+                    <h3 className="text-xl font-bold">{featuredProduct?.name}</h3>
+                    <p className="text-xs text-amber-200 font-medium mb-3">{featuredProduct?.tamilName}</p>
+                    <div className="flex items-center justify-between pt-2 border-t border-white/20">
+                      <div>
+                        <span className="text-xs text-stone-300">Wholesale from</span>
+                        <p className="text-2xl font-extrabold text-amber-400">
+                          ₹{featuredProduct?.pricePerUnit?.toFixed(2)} <span className="text-xs text-white font-normal">/ unit</span>
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => onCustomizeClick ? onCustomizeClick() : null}
+                        className="px-4 py-2 bg-white text-[#7e5222] rounded-xl text-xs font-bold hover:bg-amber-50 transition-colors shadow"
+                      >
+                        Customize Now ➔
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Float pill */}

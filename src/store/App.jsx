@@ -41,27 +41,38 @@ export default function App() {
 
   // Load products, wishlist, and orders from storage on mount
   useEffect(() => {
-    const stored = Storage.getProducts();
-    if (stored && stored.length > 0) {
-      // Ensure dummy Unsplash photos are stripped so owner can add original photos
-      const cleaned = stored.map(p => ({
-        ...p,
-        images: (p.images || []).filter(img => !img.includes('images.unsplash.com'))
-      }));
-      Storage.saveProducts(cleaned);
-      setProducts(cleaned);
+    let stored = Storage.getProducts();
+    // Wipe legacy test/demo products if present so owner starts with a clean catalog
+    if (stored && Array.isArray(stored)) {
+      const hasLegacyDemo = stored.some(p => p.id === 'cb-001' || p.id === 'cb-002' || p.id === 'cb-003' || p.id === 'cb-004');
+      if (hasLegacyDemo) {
+        stored = [];
+        Storage.saveProducts([]);
+      }
+    }
+
+    if (stored !== null && Array.isArray(stored)) {
+      setProducts(stored);
     } else {
       Storage.saveProducts(INITIAL_PRODUCTS);
       setProducts(INITIAL_PRODUCTS);
     }
+
+    // Clean legacy test orders
+    let storedOrders = Storage.getOrders() || [];
+    const hasLegacyOrders = storedOrders.some(o => o.orderId && (o.orderId.startsWith('TEST-') || o.orderId.startsWith('DEMO-')));
+    if (hasLegacyOrders) {
+      storedOrders = storedOrders.filter(o => !o.orderId.startsWith('TEST-') && !o.orderId.startsWith('DEMO-'));
+      Storage.saveOrders(storedOrders);
+    }
+    setOrders(storedOrders);
     setWishlist(Storage.getWishlist() || []);
-    setOrders(Storage.getOrders() || []);
   }, []);
 
-  // Listen for cross-tab storage changes (admin updates stock or order status)
+  // Listen for cross-tab and same-tab storage changes (admin updates stock, products, or order status)
   useEffect(() => {
     const cleanup = Storage.onStorageChange((key, newValue) => {
-      if (key === 'cb_products' && newValue) setProducts(newValue);
+      if (key === 'cb_products' && newValue !== undefined && newValue !== null) setProducts(newValue);
       if (key === 'cb_orders' && newValue) setOrders(newValue);
       if (key === 'cb_wishlist' && newValue) setWishlist(newValue);
     });
@@ -544,7 +555,13 @@ export default function App() {
 
       {/* 6. Admin Panel (Factory Owner Restricted) */}
       {isAdminOpen && (
-        <AdminApp onClose={() => setIsAdminOpen(false)} />
+        <AdminApp onClose={() => {
+          setIsAdminOpen(false);
+          const fresh = Storage.getProducts();
+          if (fresh !== null && Array.isArray(fresh)) {
+            setProducts(fresh);
+          }
+        }} />
       )}
 
       {/* 7. Google Authentication Modal */}

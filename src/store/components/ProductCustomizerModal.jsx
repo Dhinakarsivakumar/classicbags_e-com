@@ -2,10 +2,10 @@ import React, { useState, useMemo, useRef } from 'react';
 import { X, Upload, ShoppingCart, Minus, Plus, Image as ImageIcon, ChevronLeft, ChevronRight, Check, ShoppingBag } from 'lucide-react';
 
 export default function ProductCustomizerModal({ product, onClose, onAddToCart }) {
-  const [selectedSize, setSelectedSize] = useState(product.sizes[0]);
-  const [selectedGsm, setSelectedGsm] = useState(product.gsm);
-  const [selectedHandle, setSelectedHandle] = useState(product.handles[0]);
-  const [qty, setQty] = useState(product.minOrderQty);
+  const [selectedSize, setSelectedSize] = useState((product.sizes && product.sizes[0]) || '10×14×4 in');
+  const [selectedGsm, setSelectedGsm] = useState(product.gsm || 120);
+  const [selectedHandle, setSelectedHandle] = useState((product.handles && product.handles[0]) || 'Twisted Paper');
+  const [qty, setQty] = useState(product.minOrderQty || 100);
   const [logoFile, setLogoFile] = useState(null);
   const [logoPreview, setLogoPreview] = useState(null);
   const [printNotes, setPrintNotes] = useState('');
@@ -23,11 +23,15 @@ export default function ProductCustomizerModal({ product, onClose, onAddToCart }
 
   // Calculate price from tier pricing
   const unitPrice = useMemo(() => {
-    let price = product.tierPricing[0].price;
-    for (const tier of product.tierPricing) {
-      if (qty >= tier.min) price = tier.price;
+    let price = (product.tierPricing && product.tierPricing.length > 0)
+      ? product.tierPricing[0].price
+      : (product.pricePerUnit || 1);
+    if (product.tierPricing && product.tierPricing.length > 0) {
+      for (const tier of product.tierPricing) {
+        if (qty >= tier.min) price = tier.price;
+      }
     }
-    const gsmDiff = selectedGsm - product.gsm;
+    const gsmDiff = selectedGsm - (product.gsm || 120);
     const gsmAdjustment = product.pricePerUnit < 0.1 ? 0 : gsmDiff * 0.01;
     return Math.max(price + gsmAdjustment, 0.01);
   }, [qty, selectedGsm, product]);

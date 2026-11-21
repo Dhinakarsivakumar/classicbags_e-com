@@ -5,7 +5,7 @@ import { Storage } from '../../shared/services/storage';
 
 export default function LoginScreen({ settings, onAuthenticated, onClose }) {
   const authUser = Storage.getAuthUser();
-  const [username, setUsername] = useState(() => (authUser?.email || 'Admin@CB'));
+  const [username, setUsername] = useState(() => (authUser?.email || ''));
   const [credential, setCredential] = useState('');
   const [error, setError] = useState('');
   const [showPass, setShowPass] = useState(false);
@@ -39,7 +39,7 @@ export default function LoginScreen({ settings, onAuthenticated, onClose }) {
         Storage.setAdminAuthenticated(true, { username: cleanUser });
         onAuthenticated();
       } else {
-        setError('Invalid credentials. Please enter authorized username (Admin@CB) and password.');
+        setError('Invalid credentials. Please enter authorized username and password.');
         setCredential('');
       }
       setIsLoading(false);
@@ -78,13 +78,10 @@ export default function LoginScreen({ settings, onAuthenticated, onClose }) {
                 <ShieldCheck className="w-7 h-7 text-[#7e5222]" />
               </div>
               <h1 className="text-xl font-extrabold text-stone-900 tracking-tight">
-                {settings?.storeName || 'Classic Bags'} Owner Portal
+                {settings?.storeName || 'Classic Bags'} Admin
               </h1>
               <p className="text-xs font-bold text-[#7e5222] mt-0.5 tracking-wider uppercase">
-                Authorized Admin Login
-              </p>
-              <p className="text-[11px] text-stone-500 mt-1">
-                Protected area for factory inventory, UPI verification &amp; orders.
+                Admin Login
               </p>
             </div>
 
@@ -92,7 +89,7 @@ export default function LoginScreen({ settings, onAuthenticated, onClose }) {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-stone-700 mb-1">
-                  Admin Username / Gmail
+                  Username
                 </label>
                 <div className="relative">
                   <User className="w-4 h-4 text-stone-400 absolute left-3.5 top-3" />
@@ -100,7 +97,7 @@ export default function LoginScreen({ settings, onAuthenticated, onClose }) {
                     type="text"
                     value={username}
                     onChange={e => setUsername(e.target.value)}
-                    placeholder="Admin@CB"
+                    placeholder=""
                     required
                     className="w-full pl-10 pr-3 py-2.5 text-xs font-medium bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7e5222] focus:bg-white transition-all"
                   />
@@ -109,7 +106,7 @@ export default function LoginScreen({ settings, onAuthenticated, onClose }) {
 
               <div>
                 <label className="block text-xs font-bold text-stone-700 mb-1">
-                  Admin Password or PIN
+                  Password
                 </label>
                 <div className="relative">
                   <KeyRound className="w-4 h-4 text-stone-400 absolute left-3.5 top-3" />
@@ -117,7 +114,7 @@ export default function LoginScreen({ settings, onAuthenticated, onClose }) {
                     type={showPass ? 'text' : 'password'}
                     value={credential}
                     onChange={e => { setCredential(e.target.value); if (error) setError(''); }}
-                    placeholder="Enter password (e.g. CB2001#)"
+                    placeholder=""
                     required
                     autoFocus
                     className="w-full pl-10 pr-10 py-2.5 text-xs font-medium bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7e5222] focus:bg-white transition-all"
@@ -156,13 +153,6 @@ export default function LoginScreen({ settings, onAuthenticated, onClose }) {
                 )}
               </button>
             </form>
-          </div>
-
-          {/* Footer note */}
-          <div className="bg-stone-50 border-t border-stone-200 px-7 py-3 text-center">
-            <p className="text-[11px] text-stone-500">
-              Authorized Owner: S. Dhinakar (Admin@CB)
-            </p>
           </div>
         </div>
       </div>

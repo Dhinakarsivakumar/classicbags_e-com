@@ -138,6 +138,7 @@ export const Storage = {
   saveProducts: (products) => {
     localStorage.setItem(KEYS.PRODUCTS, JSON.stringify(products));
     window.dispatchEvent(new Event('storage'));
+    window.dispatchEvent(new CustomEvent('cb_store_updated', { detail: { key: KEYS.PRODUCTS, value: products } }));
   },
 
   // --- Orders ---
@@ -180,6 +181,8 @@ export const Storage = {
   },
   saveSettings: (settings) => {
     localStorage.setItem(KEYS.SETTINGS, JSON.stringify(settings));
+    window.dispatchEvent(new Event('storage'));
+    window.dispatchEvent(new CustomEvent('cb_store_updated', { detail: { key: KEYS.SETTINGS, value: settings } }));
   },
 
   // --- Wishlist ---
@@ -190,6 +193,7 @@ export const Storage = {
   saveWishlist: (wishlist) => {
     localStorage.setItem(KEYS.WISHLIST, JSON.stringify(wishlist));
     window.dispatchEvent(new Event('storage'));
+    window.dispatchEvent(new CustomEvent('cb_store_updated', { detail: { key: KEYS.WISHLIST, value: wishlist } }));
   },
 
   // --- Saved Addresses ---

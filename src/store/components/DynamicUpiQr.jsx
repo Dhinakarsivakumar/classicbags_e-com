@@ -82,7 +82,6 @@ export default function DynamicUpiQr({
           </div>
 
           <h4 className="text-base sm:text-lg font-black tracking-tight text-stone-900">{cleanPayee}</h4>
-          <p className="text-xs text-stone-500 font-medium">{phone}</p>
           <div className="mt-1 inline-block bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-bold px-2 py-0.5 rounded-full">
             ● Live Dynamic QR Code
           </div>

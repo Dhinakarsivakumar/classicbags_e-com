@@ -87,6 +87,16 @@ export default function ProductManager({ products, onUpdateProducts }) {
     setEditingProduct(product);
     setUseUrlMode(false);
     setUploadStatus('');
+    const baseP = parseFloat(product.pricePerUnit) || 0;
+    const initialTiers = (product.tierPricing && product.tierPricing.length > 0)
+      ? product.tierPricing.map((t) => ({ min: t.min, price: t.price }))
+      : [
+          { min: 100, price: baseP || 5.50 },
+          { min: 500, price: Number((baseP * 0.9).toFixed(2)) || 4.80 },
+          { min: 2000, price: Number((baseP * 0.8).toFixed(2)) || 4.20 },
+          { min: 5000, price: Number((baseP * 0.7).toFixed(2)) || 3.80 },
+        ];
+
     setFormData({
       name: product.name,
       tamilName: product.tamilName || '',
@@ -99,16 +109,29 @@ export default function ProductManager({ products, onUpdateProducts }) {
       handles: (product.handles || []).join(', '),
       description: product.description || '',
       images: product.images && product.images.length > 0 ? [...product.images] : [],
-      tierPricing: product.tierPricing?.length
-        ? product.tierPricing.map((t) => ({ min: t.min, price: t.price }))
-        : emptyProduct.tierPricing.map((t) => ({ ...t })),
+      tierPricing: initialTiers,
       featured: product.featured || false,
     });
     setShowModal(true);
   };
 
   const updateFormField = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev) => {
+      const next = { ...prev, [field]: value };
+      if (field === 'pricePerUnit') {
+        const num = parseFloat(value);
+        if (!isNaN(num) && num > 0) {
+          next.tierPricing = (prev.tierPricing || []).map((t, idx) => {
+            const ratios = [1.0, 0.9, 0.8, 0.7];
+            return {
+              ...t,
+              price: Number((num * (ratios[idx] || 0.7)).toFixed(2))
+            };
+          });
+        }
+      }
+      return next;
+    });
   };
 
   // Image Compression: scale down large phone camera shots to crisp, web-optimized ~80KB-120KB images
@@ -253,12 +276,24 @@ export default function ProductManager({ products, onUpdateProducts }) {
       .map((url) => (url ? url.trim() : ''))
       .filter((url) => url.length > 0);
 
+    const basePriceNum = parseFloat(formData.pricePerUnit) || 0;
+    const validTiers = (formData.tierPricing || [])
+      .filter((t) => t.min && t.price !== '' && t.price !== null && !isNaN(t.price))
+      .map((t) => ({ min: parseInt(t.min) || 100, price: parseFloat(t.price) || 0 }));
+
+    const finalTierPricing = validTiers.length > 0 ? validTiers : [
+      { min: 100, price: basePriceNum },
+      { min: 500, price: Number((basePriceNum * 0.9).toFixed(2)) },
+      { min: 2000, price: Number((basePriceNum * 0.8).toFixed(2)) },
+      { min: 5000, price: Number((basePriceNum * 0.7).toFixed(2)) }
+    ];
+
     const productPayload = {
       id: editingProduct ? editingProduct.id : `cb-${Date.now().toString().slice(-4)}`,
       name: formData.name.trim(),
       tamilName: formData.tamilName.trim(),
       category: formData.category,
-      pricePerUnit: parseFloat(formData.pricePerUnit) || 0,
+      pricePerUnit: basePriceNum,
       minOrderQty: parseInt(formData.minOrderQty) || 100,
       gsm: parseInt(formData.gsm) || 120,
       stockUnits: parseInt(formData.stockUnits) || 0,
@@ -269,12 +304,8 @@ export default function ProductManager({ products, onUpdateProducts }) {
         ? formData.handles.split(',').map((h) => h.trim()).filter(Boolean)
         : ['Twisted Paper'],
       description: formData.description.trim(),
-      images: validImages.length > 0 ? validImages : [
-        'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=800&q=80'
-      ],
-      tierPricing: formData.tierPricing
-        .filter((t) => t.min && t.price)
-        .map((t) => ({ min: parseInt(t.min), price: parseFloat(t.price) })),
+      images: validImages,
+      tierPricing: finalTierPricing,
       featured: formData.featured,
       updatedAt: new Date().toISOString()
     };
@@ -548,6 +579,62 @@ export default function ProductManager({ products, onUpdateProducts }) {
                 </div>
               </div>
 
+              {/* Bulk Tier Pricing Slabs */}
+              <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <div>
+                    <label className="font-extrabold text-slate-800 text-xs">Bulk Quantity Tier Pricing (₹ per unit)</label>
+                    <p className="text-[11px] text-slate-500">Tier prices shown directly to customers on store product cards &amp; cart.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const numPrice = parseFloat(formData.pricePerUnit) || 0;
+                      setFormData(prev => ({
+                        ...prev,
+                        tierPricing: [
+                          { min: 100, price: numPrice },
+                          { min: 500, price: Number((numPrice * 0.9).toFixed(2)) },
+                          { min: 2000, price: Number((numPrice * 0.8).toFixed(2)) },
+                          { min: 5000, price: Number((numPrice * 0.7).toFixed(2)) },
+                        ]
+                      }));
+                    }}
+                    className="text-[11px] font-bold text-[#7e5222] hover:underline self-start sm:self-auto"
+                  >
+                    Auto-fill from Base Price
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {(formData.tierPricing || []).map((tier, idx) => (
+                    <div key={idx} className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm">
+                      <div className="text-[10px] font-bold text-slate-500 mb-1">
+                        Min Qty:
+                      </div>
+                      <input
+                        type="number"
+                        value={tier.min}
+                        onChange={(e) => updateTierPricing(idx, 'min', e.target.value)}
+                        className="w-full px-2 py-1 mb-1.5 border border-slate-300 rounded-lg text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-amber-600"
+                        placeholder="100"
+                      />
+                      <div className="text-[10px] font-bold text-slate-500 mb-1">
+                        Price (₹):
+                      </div>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={tier.price}
+                        onChange={(e) => updateTierPricing(idx, 'price', e.target.value)}
+                        className="w-full px-2 py-1 border border-slate-300 rounded-lg text-xs font-bold text-[#7e5222] focus:outline-none focus:ring-1 focus:ring-amber-600"
+                        placeholder="5.50"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               {/* DIRECT PRODUCT IMAGE UPLOAD SECTION */}
               <div className="p-4 bg-amber-50/70 rounded-2xl border border-amber-200/90 space-y-3.5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -699,7 +786,6 @@ export default function ProductManager({ products, onUpdateProducts }) {
                               src={url}
                               alt={`Product Photo ${i + 1}`}
                               className="w-full h-full object-cover"
-                              onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=400&q=80'; }}
                             />
 
                             {/* Badge */}

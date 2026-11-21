@@ -103,6 +103,18 @@ export default function App() {
     localStorage.setItem('cb_cart', JSON.stringify(cartItems));
   }, [cartItems]);
 
+  // Calculate unit price based on tier pricing with robust fallback
+  const getUnitPrice = useCallback((tierPricing, qty, fallbackPrice = 1) => {
+    if (tierPricing && tierPricing.length > 0) {
+      let price = tierPricing[0].price;
+      for (const tier of tierPricing) {
+        if (qty >= tier.min) price = tier.price;
+      }
+      return price;
+    }
+    return (typeof fallbackPrice === 'number' && !isNaN(fallbackPrice) && fallbackPrice > 0) ? fallbackPrice : 1;
+  }, []);
+
   // Quick add: adds min order qty to cart
   const handleQuickAdd = useCallback((product) => {
     setCartItems(prev => {
@@ -216,18 +228,6 @@ export default function App() {
   // Remove from cart
   const handleRemoveItem = useCallback((cartId) => {
     setCartItems(prev => prev.filter(item => item.id !== cartId));
-  }, []);
-
-  // Calculate unit price based on tier pricing with robust fallback
-  const getUnitPrice = useCallback((tierPricing, qty, fallbackPrice = 1) => {
-    if (tierPricing && tierPricing.length > 0) {
-      let price = tierPricing[0].price;
-      for (const tier of tierPricing) {
-        if (qty >= tier.min) price = tier.price;
-      }
-      return price;
-    }
-    return (typeof fallbackPrice === 'number' && !isNaN(fallbackPrice) && fallbackPrice > 0) ? fallbackPrice : 1;
   }, []);
 
   // Cart subtotal

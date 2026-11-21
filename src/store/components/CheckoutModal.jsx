@@ -86,11 +86,11 @@ export default function CheckoutModal({
     return 1;
   };
 
-  const calculatedSubtotal = cartItems.reduce((acc, item) => acc + (getItemPrice(item) * item.qty), 0);
+  const calculatedSubtotal = cartItems.reduce((acc, item) => acc + (getItemPrice(item) * (Number(item.qty) || 0)), 0);
   const finalSubtotal = (typeof subtotal === 'number' && !isNaN(subtotal) && subtotal > 0)
     ? subtotal
     : calculatedSubtotal;
-  const orderAmount = finalSubtotal.toFixed(2);
+  const orderAmount = Number(finalSubtotal || 0).toFixed(2);
 
   // Deep Link for Google Pay UPI Intent
   const upiIntentUrl = `upi://pay?pa=${STORE_SETTINGS.upiId}&pn=${encodeURIComponent(STORE_SETTINGS.merchantName)}&am=${orderAmount}&cu=INR&tn=${orderId}`;

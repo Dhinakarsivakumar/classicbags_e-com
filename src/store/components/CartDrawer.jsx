@@ -52,8 +52,11 @@ export default function CartDrawer({ items, onClose, onUpdateQty, onRemove, getU
             /* Item List */
             <div className="p-4 space-y-3">
               {items.map(item => {
-                const unitPrice = getUnitPrice(item.tierPricing, item.qty);
-                const lineTotal = unitPrice * item.qty;
+                const calculatedPrice = typeof getUnitPrice === 'function' 
+                  ? getUnitPrice(item.tierPricing, item.qty, item.unitPrice || item.price)
+                  : (item.unitPrice || item.price || 1);
+                const unitPrice = Number(calculatedPrice) || 0;
+                const lineTotal = unitPrice * (Number(item.qty) || 0);
 
                 return (
                   <div
@@ -146,7 +149,7 @@ export default function CartDrawer({ items, onClose, onUpdateQty, onRemove, getU
             <div className="flex justify-between items-center">
               <span className="text-stone-600 font-medium">Subtotal</span>
               <span className="text-xl font-extrabold text-stone-900">
-                ₹{subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                ₹{(Number(subtotal) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             </div>
 

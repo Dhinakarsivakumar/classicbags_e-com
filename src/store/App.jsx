@@ -43,20 +43,12 @@ export default function App() {
   // Load products, wishlist, and orders from storage on mount
   useEffect(() => {
     let stored = Storage.getProducts();
-    // Wipe legacy test/demo products if present so owner starts with a clean catalog
-    if (stored && Array.isArray(stored)) {
-      const hasLegacyDemo = stored.some(p => p.id === 'cb-001' || p.id === 'cb-002' || p.id === 'cb-003' || p.id === 'cb-004');
-      if (hasLegacyDemo) {
-        stored = [];
-        Storage.saveProducts([]);
-      }
-    }
-
-    if (stored !== null && Array.isArray(stored)) {
-      setProducts(stored);
-    } else {
+    // Restore initial products and stock photos if empty or without images
+    if (!stored || !Array.isArray(stored) || stored.length === 0 || stored.every(p => !p.images || p.images.length === 0)) {
       Storage.saveProducts(INITIAL_PRODUCTS);
       setProducts(INITIAL_PRODUCTS);
+    } else {
+      setProducts(stored);
     }
 
     // Clean legacy test orders

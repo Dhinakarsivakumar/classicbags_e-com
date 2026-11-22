@@ -208,6 +208,8 @@ export default function CheckoutModal({
       try {
         const host = typeof window !== 'undefined' && window.location.hostname ? window.location.hostname : '10.220.210.247';
         const endpoints = [
+          '/api/webhook/recent',
+          'https://classicbags-e-com-280576916309.europe-west1.run.app/api/webhook/recent',
           `http://${host}:3002/api/webhook/recent`,
           'http://10.220.210.247:3002/api/webhook/recent',
           'http://localhost:3002/api/webhook/recent'

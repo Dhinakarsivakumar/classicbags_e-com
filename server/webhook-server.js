@@ -9,7 +9,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const PORT = 3002;
+const PORT = process.env.PORT || 3002;
 const LOG_FILE = path.join(__dirname, 'webhook_events.json');
 const ORDERS_FILE = path.join(__dirname, 'orders.json');
 
@@ -63,8 +63,8 @@ const server = http.createServer((req, res) => {
 
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
 
-  // 1. Health & Status Check: GET /api/webhook/status or GET /
-  if ((url.pathname === '/api/webhook/status' || url.pathname === '/' || url.pathname === '/health') && req.method === 'GET') {
+  // 1. Health & Status Check: GET /api/webhook/status or GET /health
+  if ((url.pathname === '/api/webhook/status' || url.pathname === '/api/health' || url.pathname === '/health') && req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       status: 'ONLINE',
@@ -347,6 +347,46 @@ const server = http.createServer((req, res) => {
       res.end(JSON.stringify({ error: 'Image file not found' }));
       return;
     }
+  }
+
+  // 10. Static File Serving for Dist (Storefront & Admin SPA)
+  const distDir = path.join(__dirname, '..', 'dist');
+  let requestedPath = path.join(distDir, url.pathname === '/' ? 'index.html' : url.pathname);
+
+  // Security check to avoid directory traversal
+  if (!requestedPath.startsWith(distDir)) {
+    requestedPath = path.join(distDir, 'index.html');
+  }
+
+  if (fs.existsSync(requestedPath) && fs.statSync(requestedPath).isFile()) {
+    const ext = path.extname(requestedPath).toLowerCase();
+    const contentTypes = {
+      '.html': 'text/html; charset=utf-8',
+      '.js': 'application/javascript; charset=utf-8',
+      '.css': 'text/css; charset=utf-8',
+      '.json': 'application/json; charset=utf-8',
+      '.png': 'image/png',
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.svg': 'image/svg+xml',
+      '.webp': 'image/webp',
+      '.ico': 'image/x-icon',
+      '.apk': 'application/vnd.android.package-archive',
+    };
+    res.writeHead(200, {
+      'Content-Type': contentTypes[ext] || 'application/octet-stream',
+      'Cache-Control': ext === '.html' ? 'no-cache' : 'public, max-age=31536000'
+    });
+    fs.createReadStream(requestedPath).pipe(res);
+    return;
+  }
+
+  // SPA fallback to index.html for client-side routing
+  const indexPath = path.join(distDir, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' });
+    fs.createReadStream(indexPath).pipe(res);
+    return;
   }
 
   // 404

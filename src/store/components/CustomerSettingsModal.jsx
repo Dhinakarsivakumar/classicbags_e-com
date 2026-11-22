@@ -299,11 +299,11 @@ export default function CustomerSettingsModal({
             )}
           </nav>
 
-          {/* Customer Service & WhatsApp Helpline */}
+            {/* Customer Service & WhatsApp Helpline */}
           <div className="p-4 border-t border-stone-200 bg-white/60">
             <p className="text-[11px] text-stone-500 font-bold uppercase tracking-wider mb-1">Customer Service &amp; WhatsApp</p>
             <a 
-              href={`https://wa.me/${STORE_SETTINGS.whatsapp || '918940679198'}`}
+              href={`https://wa.me/${STORE_SETTINGS.whatsapp || '919843275685'}`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-xs text-[#7e5222] hover:text-green-700 hover:underline font-extrabold flex items-center gap-1.5"
@@ -600,7 +600,7 @@ export default function CustomerSettingsModal({
                           type="tel"
                           value={newAddress.phone}
                           onChange={e => setNewAddress({ ...newAddress, phone: e.target.value })}
-                          placeholder="8940679198"
+                          placeholder="9843275685"
                           className="w-full text-xs px-3 py-2 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-[#7e5222]"
                           required
                         />

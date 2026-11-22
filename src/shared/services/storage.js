@@ -176,7 +176,13 @@ export const Storage = {
 
   // --- Settings ---
   getSettings: () => {
-    try { return JSON.parse(localStorage.getItem(KEYS.SETTINGS)) || null; }
+    try {
+      const stored = JSON.parse(localStorage.getItem(KEYS.SETTINGS));
+      if (!stored) return null;
+      if (stored.whatsapp === '918940679198') stored.whatsapp = '919843275685';
+      if (stored.phone === '+91 89406 79198' || stored.phone === '8940679198') stored.phone = '+91 98432 75685';
+      return stored;
+    }
     catch { return null; }
   },
   saveSettings: (settings) => {

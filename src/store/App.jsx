@@ -485,7 +485,7 @@ export default function App() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
-              href={`https://wa.me/${STORE_SETTINGS.whatsapp}?text=Hi%20Classic%20Bags!%20I%20need%20custom%20logo%20printed%20bags.`}
+              href={`https://wa.me/${settings?.whatsapp || STORE_SETTINGS.whatsapp}?text=Hi%20Classic%20Bags!%20I%20need%20custom%20logo%20printed%20bags.`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-green-500 hover:bg-green-600 text-white rounded-full font-semibold transition-all shadow-lg"

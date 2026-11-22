@@ -82,7 +82,7 @@ export default function Hero({ products = [], onCustomizeClick, settings }) {
                 🎨 Custom Logo Printing
               </button>
               <a
-                href={`https://wa.me/${STORE_SETTINGS.whatsapp}?text=Hi%20Classic%20Bags!%20I'd%20like%20to%20place%20a%20wholesale%20order.`}
+                href={`https://wa.me/${settings?.whatsapp || STORE_SETTINGS.whatsapp}?text=Hi%20Classic%20Bags!%20I'd%20like%20to%20place%20a%20wholesale%20order.`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-full font-semibold transition-all duration-200 shadow-md"

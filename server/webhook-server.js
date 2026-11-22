@@ -243,7 +243,7 @@ const server = http.createServer((req, res) => {
     req.on('end', () => {
       try {
         const { username, password, pin } = JSON.parse(body || '{}');
-        const validUser = (!username || username === 'admin' || username === 'dhinakar' || username === '8940679198');
+        const validUser = (!username || username === 'admin' || username === 'dhinakar' || username === '9843275685' || username === '8940679198');
         const validPass = (password === 'ClassicBags@2026' || password === 'dhinakar2026' || pin === '1234');
 
         if (validUser && validPass) {
@@ -252,7 +252,7 @@ const server = http.createServer((req, res) => {
             success: true,
             role: 'SUPER_ADMIN',
             ownerName: 'Dhinakar S',
-            phone: '8940679198',
+            phone: '9843275685',
             token: `adm_${Date.now()}_auth_token`
           }));
         } else {

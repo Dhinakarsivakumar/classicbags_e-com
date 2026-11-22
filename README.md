@@ -3,7 +3,7 @@
 Official e-commerce customer storefront for **Classic Bags Thanjavur** (Eco-Friendly Paper Bags Manufacturer).
 
 📍 **Location:** Plot No. 38, 6th Street, Medical College Road, LIC Colony, Thanjavur - 613007  
-📞 **Phone:** +91 89406 79198  
+📞 **Phone:** +91 98432 75685  
 
 ## Store Features
 - **Responsive Flipkart-Style Gallery**: High-res multi-angle photography with thumbnail selector & smooth zoom (4:5 mobile & 16:9 desktop aspect ratios).
